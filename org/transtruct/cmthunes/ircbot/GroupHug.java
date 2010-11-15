@@ -6,7 +6,7 @@ import java.net.*;
 import org.htmlparser.*;
 import org.htmlparser.lexer.*;
 import org.htmlparser.util.*;
-import org.transtruct.cmthunes.irc.util.*;
+import org.transtruct.cmthunes.util.*;
 
 public class GroupHug {
     private URL url;
@@ -38,6 +38,7 @@ public class GroupHug {
         this.error = new Flag();
         
         this.confessionFetcher = new Thread(new GetConfessions());
+        this.confessionFetcher.setDaemon(true);
         this.confessionFetcher.start();
     }
     

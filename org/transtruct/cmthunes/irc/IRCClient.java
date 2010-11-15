@@ -7,7 +7,7 @@ import java.util.concurrent.*;
 import org.transtruct.cmthunes.irc.messages.*;
 import org.transtruct.cmthunes.irc.messages.filter.*;
 import org.transtruct.cmthunes.irc.protocol.*;
-import org.transtruct.cmthunes.irc.util.*;
+import org.transtruct.cmthunes.util.*;
 
 import org.jboss.netty.bootstrap.*;
 import org.jboss.netty.channel.*;
@@ -179,6 +179,7 @@ public class IRCClient implements IRCConnectionManager {
     
     @Override 
     public void onShutdown() {
+        System.out.println("IRCClient.onShutdown");
         this.bootstrap.releaseExternalResources();
     }
 

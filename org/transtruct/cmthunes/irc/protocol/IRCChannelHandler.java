@@ -2,7 +2,7 @@ package org.transtruct.cmthunes.irc.protocol;
 
 import org.transtruct.cmthunes.irc.*;
 import org.transtruct.cmthunes.irc.messages.*;
-import org.transtruct.cmthunes.irc.util.*;
+import org.transtruct.cmthunes.util.*;
 
 import org.jboss.netty.channel.*;
 

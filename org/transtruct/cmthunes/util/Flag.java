@@ -1,4 +1,4 @@
-package org.transtruct.cmthunes.irc.util;
+package org.transtruct.cmthunes.util;
 
 public class Flag {
     private boolean flag;

@@ -82,7 +82,7 @@ public class BotChannelListener implements IRCChannelListener {
             channel.part("Fuck you");
             channel.getClient().quit("Leaving");
             
-        } else if((message.contains("Hi") || message.contains("hi")) && message.contains(myNick)) {
+        } else if(message.toLowerCase().matches(".*\bhi\b.*") && message.contains(myNick)) {
             channel.write("Hello " + from.getNick());
             
         } else if(message.toLowerCase().contains("fuck you") && message.contains(myNick)) { 

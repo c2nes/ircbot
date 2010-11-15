@@ -4,7 +4,7 @@ import java.util.*;
 
 import org.transtruct.cmthunes.irc.messages.*;
 import org.transtruct.cmthunes.irc.messages.filter.*;
-import org.transtruct.cmthunes.irc.util.*;
+import org.transtruct.cmthunes.util.*;
 
 public class IRCChannel implements IRCMessageHandler {
     private String name;

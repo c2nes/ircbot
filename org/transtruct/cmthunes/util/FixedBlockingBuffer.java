@@ -1,8 +1,6 @@
-package org.transtruct.cmthunes.ircbot;
+package org.transtruct.cmthunes.util;
 
 import java.util.*;
-
-import org.transtruct.cmthunes.irc.util.*;
 
 public class FixedBlockingBuffer<T> {
     private LinkedList<T> elements;

@@ -38,5 +38,6 @@ public class Bot {
         
         /* Wait for client object's connection to exit and close */
         client.getConnection().awaitClosed();
+        System.out.println("Exiting");
     }
 }
