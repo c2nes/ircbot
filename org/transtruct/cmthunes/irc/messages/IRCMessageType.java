@@ -2,6 +2,11 @@ package org.transtruct.cmthunes.irc.messages;
 
 import java.util.*;
 
+/**
+ * Enumeration of different IRC message types
+ * 
+ * @author Christopher Thunes <cthunes@transtruct.org>
+ */
 public enum IRCMessageType {
     /* Connection message types */
     PASS("PASS"),
@@ -159,8 +164,10 @@ public enum IRCMessageType {
     ERR_UMODEUNKNOWNFLAG("501"),
     ERR_USERSDONTMATCH("502");
 
+    /** String representation of the message type */
     private String messageTypeString;
 
+    /** Type lookup table */
     private static HashMap<String, IRCMessageType> typeLookup = new HashMap<String, IRCMessageType>();
     static {
         for(IRCMessageType t : values()) {
@@ -168,15 +175,36 @@ public enum IRCMessageType {
         }
     }
 
+    /**
+     * Initializes a new message type
+     * 
+     * @param text
+     *            The textual representation of the type as it appears in
+     *            messages
+     */
     private IRCMessageType(String text) {
         this.messageTypeString = text;
     }
 
+    /**
+     * Return the textual representation of the type as it appears in messages
+     * 
+     * @return the type as a String
+     */
     @Override
     public String toString() {
         return this.messageTypeString;
     }
 
+    /**
+     * Return the type associated with the given String. If no such type is
+     * found, {@code null} is returned.
+     * 
+     * @param text
+     *            The textual representation to lookup
+     * @return the corresponding IRCMessageType or {@code null} if it is not
+     *         found
+     */
     public static IRCMessageType fromString(String text) {
         return IRCMessageType.typeLookup.get(text);
     }

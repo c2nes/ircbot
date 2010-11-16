@@ -2,14 +2,28 @@ package org.transtruct.cmthunes.irc.messages.filter;
 
 import org.transtruct.cmthunes.irc.messages.*;
 
+/**
+ * Provides convenient filters
+ * 
+ * @author Christopher Thunes <cthunes@transtruct.org>
+ */
 public class IRCMessageFilters {
+    /** A filter that matches any message */
     public static final IRCMessageFilter PASS = new IRCMessageFilter() {
         @Override
         public boolean check(IRCMessage message) {
             return true;
         }
     };
-    
+
+    /**
+     * Construct and return a filter which will match a message pertaining to
+     * the given channel
+     * 
+     * @param channelName
+     *            The channel to construct a filter for
+     * @return the new filter
+     */
     public static IRCMessageFilter newChannelFilter(String channelName) {
         IRCMessageFilter privMsg, join, part, names, endOfNames, topic, noTopic, filter;
 
@@ -27,7 +41,14 @@ public class IRCMessageFilters {
 
         return filter;
     }
-    
+
+    /**
+     * Construct a filter which will match any message of the given type
+     * 
+     * @param type
+     *            The type to match
+     * @return the new filter
+     */
     public static IRCMessageFilter newTypeFilter(IRCMessageType type) {
         return new IRCMessageSimpleFilter(type, null);
     }

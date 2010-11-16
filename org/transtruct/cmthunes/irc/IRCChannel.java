@@ -6,17 +6,41 @@ import org.transtruct.cmthunes.irc.messages.*;
 import org.transtruct.cmthunes.irc.messages.filter.*;
 import org.transtruct.cmthunes.util.*;
 
+/**
+ * An IRC channel. Represents a connection to an IRC channel.
+ * 
+ * @author Christopher Thunes <cthunes@transtruct.org>
+ */
 public class IRCChannel implements IRCMessageHandler {
+    /* Channel name */
     private String name;
+
+    /* Associated IRCClient object */
     private IRCClient client;
+
+    /* Set once the channel has been joined */
     private Flag joined;
+
+    /* IRCChanneListners for this channel */
     private LinkedList<IRCChannelListener> listeners;
-    
+
+    /**
+     * Message handler that receives responses from NAMES requests for this
+     * channel and creates a list of names. NamesRequestHandler#getNames can be
+     * called to wait for the list to be fully populated at which time all names
+     * are returned as an array.
+     * 
+     * @author Christopher Thunes <cthunes@transtruct.org>
+     * 
+     */
     private class NamesRequestHandler implements IRCMessageHandler {
         private LinkedList<String> names;
         private Flag done;
 
-        public NamesRequestHandler(){
+        /**
+         * Create a new NamesRequestHandler
+         */
+        public NamesRequestHandler() {
             this.names = new LinkedList<String>();
             this.done = new Flag();
         }
@@ -30,22 +54,36 @@ public class IRCChannel implements IRCMessageHandler {
                     names.add(name);
                 }
                 break;
-                
+
             case RPL_ENDOFNAMES:
                 this.done.set();
                 break;
             }
         }
-        
+
+        /**
+         * Wait for a full request to be replied to and then return the list of
+         * names
+         * 
+         * @return the list of names in the channel
+         */
         public String[] getNames() {
             this.done.waitUninterruptiblyFor(true);
-            
+
             String[] tempNames = new String[this.names.size()];
             tempNames = this.names.toArray(tempNames);
             return tempNames;
         }
     }
 
+    /**
+     * Instantiate a new IRCChannel object associated with the given IRCClient
+     * 
+     * @param client
+     *            The client to operate with
+     * @param name
+     *            The channel to join
+     */
     public IRCChannel(IRCClient client, String name) {
         this.client = client;
         this.name = name;
@@ -56,14 +94,30 @@ public class IRCChannel implements IRCMessageHandler {
         this.client.addHandler(filter, this);
     }
 
+    /**
+     * Get the channel name
+     * 
+     * @return the channel name
+     */
     public String getName() {
         return this.name;
     }
 
+    /**
+     * Get the associated IRCClient
+     * 
+     * @return the associated IRCClient
+     */
     public IRCClient getClient() {
         return this.client;
     }
 
+    /**
+     * Perform the join to the channel. Returns once the join operation is
+     * complete
+     * 
+     * @return true if joined successfully, false otherwise
+     */
     public boolean doJoin() {
         IRCMessage joinMessage = new IRCMessage(IRCMessageType.JOIN, this.name);
         this.client.getConnection().sendMessage(joinMessage);
@@ -72,17 +126,49 @@ public class IRCChannel implements IRCMessageHandler {
         return true;
     }
 
+    /**
+     * Part the channel
+     * 
+     * @param reason
+     *            The reason sent with the PART message
+     */
     public void part(String reason) {
         IRCMessage partMessage = new IRCMessage(IRCMessageType.PART, this.name, reason);
         this.client.getConnection().sendMessage(partMessage);
         this.joined.clear();
     }
 
+    /**
+     * Write a message to the channel
+     * 
+     * @param text
+     *            The message to send
+     */
     public void write(String text) {
         IRCMessage privMessage = new IRCMessage(IRCMessageType.PRIVMSG, this.name, text);
         this.client.getConnection().sendMessage(privMessage);
     }
 
+    /**
+     * Write multiple messages efficiently
+     * 
+     * @param strings
+     *            The messages to send
+     */
+    public void writeMultiple(String... strings) {
+        IRCMessage[] privMessages = new IRCMessage[strings.length];
+        for(int i = 0; i < strings.length; i++) {
+            privMessages[i] = new IRCMessage(IRCMessageType.PRIVMSG, this.name, strings[i]);
+        }
+        this.client.getConnection().sendMessages(privMessages);
+    }
+
+    /**
+     * Retrieve the list of users in the channel. This call will block until a
+     * response is received and return the names list
+     * 
+     * @return the list of nicks of users in the channel
+     */
     public String[] getNames() {
         IRCMessage namesMessage = new IRCMessage(IRCMessageType.NAMES, this.name);
         IRCMessageFilter filter = new IRCMessageFilter() {
@@ -97,7 +183,7 @@ public class IRCChannel implements IRCMessageHandler {
                         return true;
                     }
                     break;
-                    
+
                 case RPL_ENDOFNAMES:
                     if(args.length > 1 && args[1].equals(channelName)) {
                         return true;
@@ -112,11 +198,21 @@ public class IRCChannel implements IRCMessageHandler {
 
         this.client.addHandler(filter, handler);
         this.client.getConnection().sendMessage(namesMessage);
-        
+
         String[] names = handler.getNames();
         this.client.removeHandler(filter);
-        
+
         return names;
+    }
+
+    /**
+     * Add an IRCChannelListener to this channel.
+     * 
+     * @param listener
+     *            the listener to add
+     */
+    public void addListener(IRCChannelListener listener) {
+        this.listeners.add(listener);
     }
 
     @Override
@@ -171,9 +267,5 @@ public class IRCChannel implements IRCMessageHandler {
         default:
             break;
         }
-    }
-
-    public void addListener(IRCChannelListener listener) {
-        this.listeners.add(listener);
     }
 }

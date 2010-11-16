@@ -6,16 +6,36 @@ import org.transtruct.cmthunes.util.*;
 
 import org.jboss.netty.channel.*;
 
+/**
+ * An IRCChannelHandler interfaces a high-level IRCConnectionManager to the
+ * lower level Netty pipeline. An IRCChannelHandler passes requests upstream to
+ * a IRCConnectionManager and allows IRCMessage objects to be sent downstream to
+ * the Netty pipeline.
+ * 
+ * @author Christopher Thunes <cthunes@transtruct.org>
+ */
 public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessagePipe {
+    /** The connection manager which requests are passed to */
     private IRCConnectionManager connectionManager;
 
-    /* Flag set once closed */
+    /** Set once the connection has be closed */
     private Flag connectionClosed;
+
+    /** Set once the process of closing the connection has started */
     private Flag connectionClosing;
 
-    /* Channel is stored after connect */
+    /**
+     * Once the connection is made, the underly channel is stored so that
+     * messages can be sent out asynchronously
+     */
     private Channel channel;
 
+    /**
+     * Initialize a new IRCChannelHandler using the given IRCConnectionManager
+     * 
+     * @param connectionManager
+     *            The high level manager for the connection
+     */
     public IRCChannelHandler(IRCConnectionManager connectionManager) {
         super();
 
@@ -25,7 +45,7 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
         this.connectionClosed = new Flag();
         this.connectionClosing = new Flag();
     }
-    
+
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
         IRCMessage message = (IRCMessage) e.getMessage();
@@ -51,6 +71,14 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
         ctx.getChannel().close();
     }
 
+    /**
+     * Close the connection. The closing process is performed asynchronously, so
+     * IRChannelHandler#awaitClosed() should be called to wait for this process
+     * to complete
+     * 
+     * @throws IRCNotConnectedException
+     *             if the connection is not connected
+     */
     public void closeChannel() throws IRCNotConnectedException {
         synchronized(this.connectionClosing) {
             /* Connection already has started being closed */
@@ -62,7 +90,7 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
             try {
                 ChannelFuture future = this.channel.close();
                 this.connectionClosing.set();
-                
+
                 future.addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
@@ -75,11 +103,18 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
         }
     }
 
+    /**
+     * Wait for the connection to complete close and for the connection manager
+     * to shut down
+     */
     public void awaitClosed() {
         this.connectionClosed.waitUninterruptiblyFor(true);
         this.connectionManager.onShutdown();
     }
 
+    /**
+     * Send a message through this connection
+     */
     @Override
     public ChannelFuture sendMessage(IRCMessage message) throws IRCNotConnectedException {
         try {
@@ -89,6 +124,9 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
         }
     }
 
+    /**
+     * Send multiple messages through this connection
+     */
     @Override
     public ChannelFuture sendMessages(IRCMessage... messages) throws IRCNotConnectedException {
         try {

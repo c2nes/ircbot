@@ -2,36 +2,110 @@ package org.transtruct.cmthunes.irc.messages;
 
 import java.util.*;
 
+/**
+ * Represents an IRCMessage. A message is a single request or reply sent by
+ * either a client or server. It has three parts: an optional prefix, a type,
+ * and a number of arguments.
+ * 
+ * @author Christopher Thunes <cthunes@transtruct.org>
+ * @see <a href="http://www.irchelp.org/irchelp/rfc/rfc.html">
+ *      http://www.irchelp.org/irchelp/rfc/rfc.html</a>
+ */
 public class IRCMessage {
+    /** The messages prefix */
     private String prefix;
+
+    /** The messages type */
     private IRCMessageType type;
+
+    /** The messages arguments */
     private String[] args;
 
+    /**
+     * This class represents a constrain placed on the number of arguments for a
+     * give type of message. It facilitates rudimentary error checking on
+     * message construction.
+     * 
+     * @author Christopher Thunes <cthunes@transtruct.org>
+     */
     private static class ArgumentConstraint {
-        private int min, max;
+        /** Minimum number of arguments or -1 */
+        private int min;
 
+        /** Maximum number of argumnets or -1 */
+        private int max;
+
+        /**
+         * Initialize a new constraint with the given min and max inclusive
+         * 
+         * @param min
+         *            The minimum number of arguments or -1
+         * @param max
+         *            The maximum number of arguments or -1
+         */
         private ArgumentConstraint(int min, int max) {
             this.min = min;
             this.max = max;
         }
 
+        /**
+         * Return a new constraint requiring at least the given number of
+         * arguments
+         * 
+         * @param n
+         *            The least number of arguments
+         * @return the new constraint
+         */
         @SuppressWarnings("unused")
         public static ArgumentConstraint atLeast(int n) {
             return new ArgumentConstraint(n, -1);
         }
 
+        /**
+         * Return a new constraint requiring at most the given number of
+         * arguments
+         * 
+         * @param n
+         *            The most number of arguments
+         * @return the new constraint
+         */
         public static ArgumentConstraint atMost(int n) {
             return new ArgumentConstraint(-1, n);
         }
 
+        /**
+         * Return a new constraint requiring at least {@code min} arguments and
+         * at most {@code max}
+         * 
+         * @param min
+         *            The least number of arguments
+         * @param max
+         *            The most number of arguments
+         * @return the new constraint
+         */
         public static ArgumentConstraint between(int min, int max) {
             return new ArgumentConstraint(min, max);
         }
 
+        /**
+         * Return a new constraint requiring exactly the given number of
+         * arguments
+         * 
+         * @param n
+         *            The number of arguments required
+         * @return the new constraint
+         */
         public static ArgumentConstraint exactly(int n) {
             return new ArgumentConstraint(n, n);
         }
 
+        /**
+         * Check the constraint against the given argument list
+         * 
+         * @param args
+         *            The argument list
+         * @return true if valid, false otherwise
+         */
         public boolean check(String[] args) {
             if(this.min != -1 && args.length < this.min) {
                 return false;
@@ -45,11 +119,11 @@ public class IRCMessage {
         }
     }
 
-    /* Mapping of message constraints to allow message formats to be enforced */
-    private static EnumMap<IRCMessageType, ArgumentConstraint> argumentConstraints = new EnumMap<IRCMessageType, ArgumentConstraint>(
-            IRCMessageType.class);
+    /** Mapping of message constraints to allow message formats to be enforced */
+    private static EnumMap<IRCMessageType, ArgumentConstraint> argumentConstraints;
 
     static {
+        argumentConstraints = new EnumMap<IRCMessageType, ArgumentConstraint>(IRCMessageType.class);
         argumentConstraints.put(IRCMessageType.NICK, ArgumentConstraint.exactly(1));
         argumentConstraints.put(IRCMessageType.PASS, ArgumentConstraint.exactly(1));
         argumentConstraints.put(IRCMessageType.USER, ArgumentConstraint.exactly(4));
@@ -64,10 +138,32 @@ public class IRCMessage {
         argumentConstraints.put(IRCMessageType.PRIVMSG, ArgumentConstraint.exactly(2));
     }
 
+    /**
+     * Construct a message with the given type and arguments
+     * 
+     * @param type
+     *            The message type
+     * @param args
+     *            The message arguments
+     * @throws IRCInvalidMessageException
+     *             if invalid arguments are given
+     */
     public IRCMessage(IRCMessageType type, String... args) throws IRCInvalidMessageException {
         this(null, type, args);
     }
 
+    /**
+     * Construct a message with the given prefix, type, and arguments
+     * 
+     * @param prefix
+     *            The message prefix
+     * @param type
+     *            The message arguments
+     * @param args
+     *            The message arguments
+     * @throws IRCInvalidMessageException
+     *             if invalid arguments are given
+     */
     public IRCMessage(String prefix, IRCMessageType type, String... args) throws IRCInvalidMessageException {
         this.prefix = prefix;
         this.type = type;
@@ -78,6 +174,11 @@ public class IRCMessage {
         }
     }
 
+    /**
+     * Verify the validity of the constructed message
+     * 
+     * @return true if the message is valid, false otherwise
+     */
     private boolean validArgs() {
         ArgumentConstraint constraint = IRCMessage.argumentConstraints.get(this.type);
 
@@ -88,6 +189,12 @@ public class IRCMessage {
         return true;
     }
 
+    /**
+     * Format the message as a String. Returns the message formatted as it would
+     * be as a newline terminated part of an IRC exchange.
+     * 
+     * @return the message encoded as a String with \r\n included
+     */
     public String toString() {
         StringBuffer buffer = new StringBuffer();
 
@@ -107,6 +214,8 @@ public class IRCMessage {
             case PRIVMSG:
             case USER:
             case PART:
+            case QUIT:
+            case KICK:
                 buffer.append(" :").append(lastArg);
                 break;
 
@@ -119,6 +228,15 @@ public class IRCMessage {
         return buffer.toString();
     }
 
+    /**
+     * Decode the given IRC message a string into an IRCMessage object
+     * 
+     * @param messageFrame
+     *            The message as read from the connection stream
+     * @return a new IRCMessage object
+     * @throws IRCInvalidMessageException
+     *             if the format of the message is invalid
+     */
     public static IRCMessage fromString(String messageFrame) throws IRCInvalidMessageException {
         String prefix = null;
         String trailing = null;
@@ -180,14 +298,29 @@ public class IRCMessage {
         return new IRCMessage(prefix, type, argsList.toArray(args));
     }
 
+    /**
+     * Get the message prefix
+     * 
+     * @return the message prefix
+     */
     public String getPrefix() {
         return this.prefix;
     }
 
+    /**
+     * Get the message type
+     * 
+     * @return the message type
+     */
     public IRCMessageType getType() {
         return this.type;
     }
 
+    /**
+     * Get the message arguments
+     * 
+     * @return the message arguments
+     */
     public String[] getArgs() {
         return this.args;
     }

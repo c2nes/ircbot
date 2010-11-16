@@ -5,6 +5,11 @@ import org.transtruct.cmthunes.irc.messages.*;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.handler.codec.oneone.*;
 
+/**
+ * Encode an IRCMessage or IRCMessage[] into a String
+ * 
+ * @author Christopher Thunes <cthunes@transtruct.org>
+ */
 public class IRCMessageEncoder extends OneToOneEncoder {
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) {
