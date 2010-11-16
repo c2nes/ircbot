@@ -32,10 +32,10 @@ public class Bot {
          * separately joined
          */
         IRCChannel c = client.join("#main");
-        
+
         /* We add a handler for channel messages */
         c.addListener(new BotChannelListener());
-        
+
         /* Wait for client object's connection to exit and close */
         client.getConnection().awaitClosed();
         System.out.println("Exiting");

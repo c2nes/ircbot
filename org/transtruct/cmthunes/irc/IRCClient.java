@@ -128,14 +128,14 @@ public class IRCClient implements IRCConnectionManager {
      *            The nick to connection with
      * @param username
      *            The user name to connect with
-     * @param host
+     * @param hostname
      *            The host name to connect with
      * @param realname
      *            The real name to connect with
      * @return true if the connection was successfully made, false otherwise
      */
-    public boolean connect(String nick, String username, String host, String realname) {
-        return this.connect(null, nick, username, host, realname);
+    public boolean connect(String nick, String username, String hostname, String realname) {
+        return this.connect(null, nick, username, hostname, realname);
     }
 
     /**
@@ -147,7 +147,7 @@ public class IRCClient implements IRCConnectionManager {
      *            The nick to connection with
      * @param username
      *            The user name to connect with
-     * @param host
+     * @param hostname
      *            The host name to connect with
      * @param realname
      *            The real name to connect with

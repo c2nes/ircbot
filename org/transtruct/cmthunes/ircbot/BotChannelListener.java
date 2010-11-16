@@ -6,9 +6,11 @@ import org.transtruct.cmthunes.irc.*;
 
 public class BotChannelListener implements IRCChannelListener {
     private GroupHug grouphug;
+    private TextsFromLastNight tfln;
 
     public BotChannelListener() {
         this.grouphug = new GroupHug();
+        this.tfln = new TextsFromLastNight();
     }
 
     @Override
@@ -26,6 +28,7 @@ public class BotChannelListener implements IRCChannelListener {
     @Override
     public void onPrivateMessage(IRCChannel channel, String message, IRCUser from) {
         String myNick = channel.getClient().getUser().getNick();
+        message = message.trim();
 
         if(message.equals("fuck off " + myNick) && from.getNick().equals("c2nes")) {
             channel.write("Fine.");
@@ -46,18 +49,30 @@ public class BotChannelListener implements IRCChannelListener {
             }
             channel.write(reply.toString().trim());
 
-        } else if(message.startsWith(".gh")) {
-            try {
-                String confession = this.grouphug.getConfession();
-                String[] parts = blockFormat(confession, 100, 10);
-                channel.writeMultiple(parts);
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
+        } else if(message.matches("\\.gh")) {
+            String confession = this.grouphug.getConfession();
+            String[] parts = blockFormat(confession, 100, 10);
+            channel.writeMultiple(parts);
+
+        } else if(message.matches("\\.tfln")) {
+            String text = this.tfln.getText();
+            String[] parts = blockFormat(text, 300, 10);
+            channel.writeMultiple(parts);
 
         } else if(message.startsWith(".m")) {
             String reply = this.doMath(message.replaceFirst(".m", "").trim());
             channel.write(String.format("%s: %s", from.getNick(), reply));
+
+        } else if(message.matches(".w[ ]+.*")) {
+            try {
+                String location = message.replaceFirst(".w", "").trim();
+                location = Weather.getAirport(location);
+                String weather = Weather.getWeather(location);
+                channel.write(weather);
+            } catch(Exception e) {
+                channel.write(e.getMessage());
+                e.printStackTrace();
+            }
 
         } else if(message.matches(myNick + "[,:].*")) {
             String request = message.replaceFirst(myNick + "[:,]", "").trim();
@@ -72,6 +87,9 @@ public class BotChannelListener implements IRCChannelListener {
                 request = request.trim();
                 String reply = this.doMath(request);
                 channel.write(String.format("%s: %s", from.getNick(), reply));
+
+            } else if(request.toLowerCase().matches("hello|hi")) {
+                // -
 
             } else {
                 channel.write("wtf does \"" + request + "\" mean?");
