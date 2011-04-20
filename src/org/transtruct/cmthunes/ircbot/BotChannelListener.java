@@ -30,24 +30,8 @@ public class BotChannelListener implements IRCChannelListener {
         String myNick = channel.getClient().getUser().getNick();
         message = message.trim();
 
-        if(message.equals("fuck off " + myNick) && from.getNick().equals("c2nes")) {
-            channel.write("Fine.");
-            channel.part("Fuck you");
+        if(message.matches("\\.quit") && from.getNick().equals("c2nes")) {
             channel.getClient().quit("Leaving");
-
-        } else if(message.toLowerCase().matches(".*\bhi\b.*") && message.contains(myNick)) {
-            channel.write("Hello " + from.getNick());
-
-        } else if(message.toLowerCase().contains("fuck you") && message.contains(myNick)) {
-            channel.write(String.format("%s: No, fuck you. You'll get more pussy", from.getNick()));
-
-        } else if(message.equals("names")) {
-            String[] names = channel.getNames();
-            StringBuffer reply = new StringBuffer();
-            for(String name : names) {
-                reply.append(name).append(" ");
-            }
-            channel.write(reply.toString().trim());
 
         } else if(message.matches("\\.gh")) {
             String confession = this.grouphug.getConfession();
@@ -63,9 +47,9 @@ public class BotChannelListener implements IRCChannelListener {
             String reply = this.doMath(message.replaceFirst(".m", "").trim());
             channel.write(String.format("%s: %s", from.getNick(), reply));
 
-        } else if(message.matches("\\.w[ ]+.*")) {
+        } else if(message.matches("\\.w\\s+.+")) {
             try {
-                String location = message.replaceFirst(".w", "").trim();
+                String location = message.substring(2).trim();
                 location = Weather.getAirport(location);
                 String weather = Weather.getWeather(location);
                 channel.write(weather);
@@ -74,25 +58,18 @@ public class BotChannelListener implements IRCChannelListener {
                 e.printStackTrace();
             }
 
-        } else if(message.matches(myNick + "[,:].*")) {
-            String request = message.replaceFirst(myNick + "[:,]", "").trim();
+        } else if(message.matches(String.format("^%s\\b.*", myNick))) {
+            String request = message.replaceFirst(myNick + "[:, ]+", "").trim();
 
             if(request.length() == 0) {
-                channel.write("wtf do you want?");
-
-            } else if(request.toLowerCase().startsWith("tell")) {
-                channel.write(String.format("%s: Don't be a lazy bitch; you do it", from.getNick()));
-
-            } else if(request.matches("([0-9.()*+-^/% ]|sin|cos|tan|sqrt|log|log2|log10)+")) {
-                request = request.trim();
-                String reply = this.doMath(request);
-                channel.write(String.format("%s: %s", from.getNick(), reply));
+                channel.write(from.getNick() + ": Yes?");
 
             } else if(request.toLowerCase().matches("hello|hi")) {
-                // -
+            	channel.write(from.getNick() + ": Hello");
 
             } else {
-                channel.write("wtf does \"" + request + "\" mean?");
+                channel.write(from.getNick() + ": That's not what your mother said");
+
             }
         }
     }
