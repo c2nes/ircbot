@@ -76,13 +76,28 @@ public class BotChannelListener implements IRCChannelListener {
 
     private String doMath(String expression) {
         try {
-            double result = Calc.evaluateExpression(expression);
-            String sResult = String.format("%.10f", result);
-            sResult = sResult.replaceFirst("0*$", "");
-            sResult = sResult.replaceFirst("\\.$", "");
+            String outFormat = "float";
+            if(expression.contains("as")) {
+                String[] parts = expression.split("as");
+                expression = parts[0].trim();
+                outFormat = parts[1].trim().toLowerCase();
+            }
 
-            if(sResult.equals("42")) {
+            double result = Calc.evaluateExpression(expression);
+            String sResult = null;
+
+            if(result == 42 && outFormat.equals("float")) {
                 sResult = "The meaning of life";
+            } else if(outFormat.equals("float")) {
+                sResult = String.format("%.10f", result);
+                sResult = sResult.replaceFirst("0*$", "");
+                sResult = sResult.replaceFirst("\\.$", "");
+            } else if(outFormat.equals("hex")) {
+                sResult = "0x" + Integer.toString((int) result, 16);
+            } else if(outFormat.equals("bin")) {
+                sResult = "0b" + Integer.toString((int) result, 2);
+            } else {
+                sResult = "Invalid conversion specifier";
             }
 
             return sResult;

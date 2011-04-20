@@ -29,7 +29,12 @@ public class Calc {
     private static final Operator times = new Operator("*", 1, OperatorType.BINARY);
     private static final Operator div = new Operator("/", 1, OperatorType.BINARY);
     private static final Operator mod = new Operator("%", 1, OperatorType.BINARY);
-    private static final Operator pow = new Operator("^", 3, OperatorType.BINARY);
+    private static final Operator pow = new Operator("**", 3, OperatorType.BINARY);
+
+    private static final Operator and = new Operator("&", 3, OperatorType.BINARY);
+    private static final Operator or = new Operator("|", 3, OperatorType.BINARY);
+    private static final Operator xor = new Operator("^", 3, OperatorType.BINARY);
+    private static final Operator bitnot = new Operator("~", 2, OperatorType.UNARY);
 
     private static final Operator cos = new Operator("cos", 2, OperatorType.UNARY);
     private static final Operator sin = new Operator("sin", 2, OperatorType.UNARY);
@@ -52,7 +57,13 @@ public class Calc {
         allSpecialTokens.add("*");
         allSpecialTokens.add("/");
         allSpecialTokens.add("%");
+        allSpecialTokens.add("**");
+
+        allSpecialTokens.add("&");
+        allSpecialTokens.add("|");
         allSpecialTokens.add("^");
+        allSpecialTokens.add("~");
+
         allSpecialTokens.add("cos");
         allSpecialTokens.add("sin");
         allSpecialTokens.add("tan");
@@ -60,10 +71,11 @@ public class Calc {
         allSpecialTokens.add("log");
         allSpecialTokens.add("log2");
         allSpecialTokens.add("log10");
+
         allSpecialTokens.add("(");
         allSpecialTokens.add(")");
 
-        number = Pattern.compile("[0-9]+|[0-9]*\\.[0-9]+|PI|E");
+        number = Pattern.compile("[0-9]+|[0-9]*\\.[0-9]+|0b[01]+|0x[0-9abcdefABCDEF]+|PI|E");
     }
 
     private static ArrayList<String> tokenizeExpression(String expression) throws Exception {
@@ -117,8 +129,16 @@ public class Calc {
             return div;
         } else if(token.equals("%")) {
             return mod;
-        } else if(token.equals("^")) {
+        } else if(token.equals("**")) {
             return pow;
+        } else if(token.equals("&")) {
+            return and;
+        } else if(token.equals("|")) {
+            return or;
+        } else if(token.equals("^")) {
+            return xor;
+        } else if(token.equals("~")) {
+            return bitnot;
         } else if(token.equals("cos")) {
             return cos;
         } else if(token.equals("sin")) {
@@ -164,6 +184,14 @@ public class Calc {
             return ((int) operands[0]) % ((int) operands[1]);
         } else if(op == pow) {
             return Math.pow(operands[0], operands[1]);
+        } else if(op == and) {
+            return ((int) operands[0]) & ((int) operands[1]);
+        } else if(op == or) {
+            return ((int) operands[0]) | ((int) operands[1]);
+        } else if(op == xor) {
+            return ((int) operands[0]) ^ ((int) operands[1]);
+        } else if(op == bitnot) {
+            return ~((int) operands[0]);
         } else if(op == neg) {
             return -operands[0];
         } else if(op == sin) {
@@ -227,8 +255,12 @@ public class Calc {
                     return Math.PI;
                 } else if(token.equals("E")) {
                     return Math.E;
+                } else if(token.startsWith("0b")) {
+                    return Integer.valueOf(token.replaceFirst("0b", ""), 2);
+                } else if(token.startsWith("0x")) {
+                    return Integer.valueOf(token.replaceFirst("0x", ""), 16);
                 } else {
-                    return Double.valueOf(tokens.get(start));
+                    return Double.valueOf(token);
                 }
             } else {
                 throw new Exception(String.format("Expected literal at token %d (%s)", start, token));
@@ -277,7 +309,10 @@ public class Calc {
             throw new Exception("Binary operator at beginning of expression");
         }
 
-        /* Recurse to evaluate the operators operands, then apply the operation to these operands */
+        /*
+         * Recurse to evaluate the operators operands, then apply the operation
+         * to these operands
+         */
         switch(rootOp.type) {
         case UNARY:
             double operand = evaluateSubExpression(tokens, iRootOp + 1, end);
