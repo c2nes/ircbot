@@ -1,0 +1,22 @@
+<project name="IRCBot" default="build" basedir=".">
+    <property name="src" value="src" />
+	<property name="build" value="build" />
+	
+	<path id="classpath">
+        <pathelement location="lib/netty.jar" />
+        <pathelement location="lib/htmlparser.jar" />
+		<pathelement path="${build}" />
+	</path>
+
+	<target name="init">
+	    <mkdir dir="${build}" />
+	</target>
+
+	<target name="build" depends="init">
+	    <javac srcdir="${src}" destdir="${build}" classpathref="classpath" />
+	</target>
+	
+	<target name="run" depends="build">
+	    <java classname="org.transtruct.cmthunes.ircbot.Bot" classpathref="classpath" />
+	</target>
+</project>

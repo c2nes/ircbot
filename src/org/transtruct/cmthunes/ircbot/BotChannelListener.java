@@ -59,11 +59,11 @@ public class BotChannelListener implements IRCChannelListener {
             String[] parts = blockFormat(text, 300, 10);
             channel.writeMultiple(parts);
 
-        } else if(message.startsWith(".m")) {
+        } else if(message.startsWith("\\.m")) {
             String reply = this.doMath(message.replaceFirst(".m", "").trim());
             channel.write(String.format("%s: %s", from.getNick(), reply));
 
-        } else if(message.matches(".w[ ]+.*")) {
+        } else if(message.matches("\\.w[ ]+.*")) {
             try {
                 String location = message.replaceFirst(".w", "").trim();
                 location = Weather.getAirport(location);
