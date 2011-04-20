@@ -33,7 +33,7 @@ public class FixedBlockingBuffer<T> {
      */
     public FixedBlockingBuffer(int capacity) {
         this.elements = new LinkedList<T>();
-        this.capacity = 0;
+        this.capacity = capacity;
 
         this.full = new Flag(false);
         this.empty = new Flag(true);
@@ -57,7 +57,7 @@ public class FixedBlockingBuffer<T> {
                 this.empty.clear();
             }
 
-            if(this.elements.size() == this.capacity) {
+            if(this.elements.size() >= this.capacity) {
                 this.full.set();
             }
         }
