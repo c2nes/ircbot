@@ -31,7 +31,7 @@ public class Bot {
          * Join a channel. Channels can also be directly instantiated and
          * separately joined
          */
-        IRCChannel c = client.join("#main");
+        IRCChannel c = client.join("#bot");
 
         /* We add a handler for channel messages */
         c.addListener(new BotChannelListener());
