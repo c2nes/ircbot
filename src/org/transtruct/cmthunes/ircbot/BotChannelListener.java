@@ -27,33 +27,49 @@ public class BotChannelListener implements IRCChannelListener {
     }
 
     @Override
+    public void onQuit(IRCChannel channel, IRCUser user) {
+        channel.write("Bye!");
+        for(String nick : channel.getNames()) {
+            channel.write("wobl " + nick);
+        }
+    }
+
+    @Override
     public void onPrivateMessage(IRCChannel channel, String message, IRCUser from) {
         String myNick = channel.getClient().getUser().getNick();
         message = message.trim();
 
-        if (message.matches("\\.quit") && from.getNick().equals("c2nes")) {
+        if(message.matches("\\.quit") && from.getNick().equals("c2nes")) {
             channel.getClient().quit("Leaving");
 
-        } else if (message.matches("\\.gh")) {
+        } else if(message.matches("\\.names")) {
+            StringBuilder builder = new StringBuilder();
+            for(String nick : channel.getNames()) {
+                builder.append(nick);
+                builder.append(" ");
+            }
+            channel.write(builder.toString());
+
+        } else if(message.matches("\\.gh")) {
             String confession = this.grouphug.getConfession();
             String[] parts = blockFormat(confession, 100, 10);
             channel.writeMultiple(parts);
 
-        } else if (message.matches("\\.tfln")) {
+        } else if(message.matches("\\.tfln")) {
             String text = this.tfln.getText();
             String[] parts = blockFormat(text, 300, 10);
             channel.writeMultiple(parts);
 
-        } else if (message.startsWith(".m")) {
+        } else if(message.startsWith(".m")) {
             String query = message.replaceFirst(".m", "").trim();
             String reply = this.doMath(query);
             channel.write(String.format("%s: %s", from.getNick(), reply));
 
-        } else if (message.matches("\\.w\\s+.+")) {
+        } else if(message.matches("\\.w\\s+.+")) {
             try {
                 boolean useAirport = true;
                 StringBuilder query = new StringBuilder();
-                
+
                 for(String arg : message.substring(2).trim().split("\\s+")) {
                     if(arg.trim().equals("-l")) {
                         useAirport = false;
@@ -61,13 +77,24 @@ public class BotChannelListener implements IRCChannelListener {
                         query.append(arg + " ");
                     }
                 }
-                
-                List<Location> locations = this.weather.searchLocation(query.toString().trim());
+
+                List<Location> locations = this.weather
+                        .searchLocation(query.toString().trim(), useAirport, !useAirport);
 
                 if(locations.size() == 0) {
                     channel.write("No stations found");
                 } else {
                     Location location = locations.get(0);
+
+                    if(!useAirport) {
+                        for(Location pws_l : locations) {
+                            PersonalWeatherStation pws = (PersonalWeatherStation) pws_l;
+                            if(pws.getDistance() < ((PersonalWeatherStation) location).getDistance()) {
+                                location = pws;
+                            }
+                        }
+                    }
+
                     WeatherCondition condition = this.weather.getCondition(location);
                     String response = null;
                     String locString = location.getCity();
@@ -78,24 +105,22 @@ public class BotChannelListener implements IRCChannelListener {
                             locString = neighborhood;
                         }
                     }
-                    
-                    response = String.format("%s: %dC (%dF) %s", locString,
-                                                                 (int) condition.getTempC(),
-                                                                 (int) condition.getTempF(),
-                                                                 condition.getConditionString());
+
+                    response = String.format("%s: %dC (%dF) %s", locString, (int) condition.getTempC(),
+                            (int) condition.getTempF(), condition.getConditionString());
                     channel.write(response);
                 }
-            } catch (WeatherException e) {
+            } catch(WeatherException e) {
                 channel.write(e.getMessage());
             }
 
-        } else if (message.matches(String.format("^%s\\b.*", myNick))) {
+        } else if(message.matches(String.format("^%s\\b.*", myNick))) {
             String request = message.replaceFirst(myNick + "[:, ]+", "").trim();
 
-            if (request.length() == 0) {
+            if(request.length() == 0) {
                 channel.write(from.getNick() + ": Yes?");
 
-            } else if (request.toLowerCase().matches("hello|hi")) {
+            } else if(request.toLowerCase().matches("hello|hi")) {
                 channel.write(from.getNick() + ": Hello");
 
             } else {
@@ -108,7 +133,7 @@ public class BotChannelListener implements IRCChannelListener {
     private String doMath(String expression) {
         try {
             String outFormat = "float";
-            if (expression.contains("as")) {
+            if(expression.contains("as")) {
                 String[] parts = expression.split("as");
                 expression = parts[0].trim();
                 outFormat = parts[1].trim().toLowerCase();
@@ -117,22 +142,22 @@ public class BotChannelListener implements IRCChannelListener {
             double result = Calc.evaluateExpression(expression);
             String sResult = null;
 
-            if (result == 42 && outFormat.equals("float")) {
+            if(result == 42 && outFormat.equals("float")) {
                 sResult = "The meaning of life";
-            } else if (outFormat.equals("float")) {
+            } else if(outFormat.equals("float")) {
                 sResult = String.format("%.10f", result);
                 sResult = sResult.replaceFirst("0*$", "");
                 sResult = sResult.replaceFirst("\\.$", "");
-            } else if (outFormat.equals("hex")) {
+            } else if(outFormat.equals("hex")) {
                 sResult = "0x" + Integer.toString((int) result, 16);
-            } else if (outFormat.equals("bin")) {
+            } else if(outFormat.equals("bin")) {
                 sResult = "0b" + Integer.toString((int) result, 2);
             } else {
                 sResult = "Invalid conversion specifier";
             }
 
             return sResult;
-        } catch (Exception e) {
+        } catch(Exception e) {
             return e.getMessage();
         }
     }
@@ -141,16 +166,16 @@ public class BotChannelListener implements IRCChannelListener {
         ArrayList<String> messages = new ArrayList<String>();
         String[] lines = text.split("\n");
 
-        for (String line : lines) {
+        for(String line : lines) {
             line = line.trim();
 
             int i = 0;
             int length = 0;
 
-            while (line.length() - i > width) {
+            while(line.length() - i > width) {
                 length = width - play;
-                while (length < width) {
-                    if (line.charAt(i + length) == ' ') {
+                while(length < width) {
+                    if(line.charAt(i + length) == ' ') {
                         break;
                     }
 
@@ -169,5 +194,4 @@ public class BotChannelListener implements IRCChannelListener {
         messagesArray = messages.toArray(messagesArray);
         return messagesArray;
     }
-
 }
