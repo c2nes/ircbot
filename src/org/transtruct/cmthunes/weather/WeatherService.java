@@ -71,8 +71,12 @@ public class WeatherService {
         
         return pws;
     }
-    
+
     public List<Location> searchLocation(String query) throws WeatherException {
+        return searchLocation(query, true, true);
+    }
+    
+    public List<Location> searchLocation(String query, boolean includeAirports, boolean includeStations) throws WeatherException {
         String baseURL = "http://api.wunderground.com/auto/wui/geo/GeoLookupXML/index.xml?query=";
         try {
             URL url = new URL(baseURL + URLEncoder.encode(query, "UTF-8"));
@@ -84,21 +88,25 @@ public class WeatherService {
             connection.setReadTimeout(5000);
             document = builder.parse(connection.getInputStream());
 
-            NodeList airports = (NodeList) this.xpath.evaluate("//airport/station", document, XPathConstants.NODESET);
-            NodeList pws = (NodeList) this.xpath.evaluate("//pws/station", document, XPathConstants.NODESET);
             
             ArrayList<Location> locations = new ArrayList<Location>();
             
             /* Add airports */
-            for(int i = 0; i < airports.getLength(); i++) {
-                locations.add(buildAirport(airports.item(i)));
+            if(includeAirports) {
+                NodeList airports = (NodeList) this.xpath.evaluate("//airport/station", document, XPathConstants.NODESET);
+                for(int i = 0; i < airports.getLength(); i++) {
+                    locations.add(buildAirport(airports.item(i)));
+                }
             }
-
+            
             /* Add personal weather stations */
-            for(int i = 0; i < pws.getLength(); i++) {
-                locations.add(buildPersonalWeatherStation(pws.item(i)));
+            if(includeStations) {
+                NodeList pws = (NodeList) this.xpath.evaluate("//pws/station", document, XPathConstants.NODESET);
+                for(int i = 0; i < pws.getLength(); i++) {
+                    locations.add(buildPersonalWeatherStation(pws.item(i)));
+                }
             }
-
+            
             return locations;
         } catch(SocketTimeoutException e) {
             throw new WeatherException("Timed out while retrieving location data");
