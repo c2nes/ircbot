@@ -8,7 +8,7 @@ import org.transtruct.cmthunes.irc.messages.*;
  * 
  * @author Christopher Thunes <cthunes@transtruct.org>
  */
-public class IRCMessageSimpleFilter extends IRCMessageFilter {
+public class IRCMessageSimpleFilter implements IRCMessageFilter {
     /** Type of the message to match or null */
     private IRCMessageType type;
 

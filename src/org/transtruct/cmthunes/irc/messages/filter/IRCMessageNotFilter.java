@@ -7,7 +7,7 @@ import org.transtruct.cmthunes.irc.messages.*;
  * 
  * @author Christopher Thunes <cthunes@transtruct.org>
  */
-public class IRCMessageNotFilter extends IRCMessageFilter {
+public class IRCMessageNotFilter implements IRCMessageFilter {
     private IRCMessageFilter filter;
 
     /**
