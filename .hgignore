@@ -4,3 +4,4 @@ syntax: glob
 .settings/*
 *.class
 doc/*
+*.jar
