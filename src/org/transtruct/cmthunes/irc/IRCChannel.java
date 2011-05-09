@@ -24,6 +24,9 @@ public class IRCChannel implements IRCMessageHandler {
     /* IRCChanneListners for this channel */
     private LinkedList<IRCChannelListener> listeners;
 
+    /* List of nicks in the channel */
+    private ArrayList<String> names;
+
     /**
      * Message handler that receives responses from NAMES requests for this
      * channel and creates a list of names. NamesRequestHandler#getNames can be
@@ -33,15 +36,15 @@ public class IRCChannel implements IRCMessageHandler {
      * @author Christopher Thunes <cthunes@transtruct.org>
      * 
      */
-    private class NamesRequestHandler implements IRCMessageHandler {
-        private LinkedList<String> names;
+    private class NamesRequestHandler implements IRCMessageHandler, IRCMessageFilter {
+        private ArrayList<String> names;
         private Flag done;
 
         /**
          * Create a new NamesRequestHandler
          */
         public NamesRequestHandler() {
-            this.names = new LinkedList<String>();
+            this.names = new ArrayList<String>();
             this.done = new Flag();
         }
 
@@ -51,7 +54,7 @@ public class IRCChannel implements IRCMessageHandler {
             case RPL_NAMREPLY:
                 String[] args = message.getArgs();
                 for(String name : args[args.length - 1].split(" ")) {
-                    names.add(name);
+                    names.add(name.replaceFirst("^[@+]", ""));
                 }
                 break;
 
@@ -61,18 +64,36 @@ public class IRCChannel implements IRCMessageHandler {
             }
         }
 
+        @Override
+        public boolean check(IRCMessage message) {
+            String channelName = IRCChannel.this.getName();
+            String[] args = message.getArgs();
+
+            switch(message.getType()) {
+            case RPL_NAMREPLY:
+                if(args.length > 2 && args[2].equals(channelName)) {
+                    return true;
+                }
+                break;
+
+            case RPL_ENDOFNAMES:
+                if(args.length > 1 && args[1].equals(channelName)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /**
          * Wait for a full request to be replied to and then return the list of
          * names
          * 
          * @return the list of names in the channel
          */
-        public String[] getNames() {
+        public ArrayList<String> getNames() {
             this.done.waitUninterruptiblyFor(true);
-
-            String[] tempNames = new String[this.names.size()];
-            tempNames = this.names.toArray(tempNames);
-            return tempNames;
+            return this.names;
         }
     }
 
@@ -89,8 +110,17 @@ public class IRCChannel implements IRCMessageHandler {
         this.name = name;
         this.joined = new Flag();
         this.listeners = new LinkedList<IRCChannelListener>();
+        this.names = null;
 
-        IRCMessageFilter filter = IRCMessageFilters.newChannelFilter(name);
+        /*
+         * Build a compound filter collecting messages sent regarding this
+         * channel and include all QUIT messages. Some QUIT messages will
+         * concern this channel if it's a user in this channel QUITing
+         */
+        IRCMessageFilter channelFilter = IRCMessageFilters.newChannelFilter(name);
+        IRCMessageFilter quitFilter = IRCMessageFilters.newTypeFilter(IRCMessageType.QUIT);
+        IRCMessageFilter filter = new IRCMessageOrFilter(channelFilter, quitFilter);
+
         this.client.addHandler(filter, this);
     }
 
@@ -120,8 +150,14 @@ public class IRCChannel implements IRCMessageHandler {
      */
     public boolean doJoin() {
         IRCMessage joinMessage = new IRCMessage(IRCMessageType.JOIN, this.name);
+        NamesRequestHandler namesHandler = new NamesRequestHandler();
+
+        this.client.addHandler(namesHandler, namesHandler);
         this.client.getConnection().sendMessage(joinMessage);
         this.joined.waitUninterruptiblyFor(true);
+        this.names = namesHandler.getNames();
+
+        this.client.removeHandler(namesHandler);
 
         return true;
     }
@@ -164,45 +200,31 @@ public class IRCChannel implements IRCMessageHandler {
     }
 
     /**
-     * Retrieve the list of users in the channel. This call will block until a
-     * response is received and return the names list
+     * Retrieve the list of users in the channel. This call returns a cached
+     * copy. To request a refresh of the listing from the server call
+     * IRChannel#refreshNames.
      * 
      * @return the list of nicks of users in the channel
      */
     public String[] getNames() {
-        IRCMessage namesMessage = new IRCMessage(IRCMessageType.NAMES, this.name);
-        IRCMessageFilter filter = new IRCMessageFilter() {
-            @Override
-            public boolean check(IRCMessage message) {
-                String channelName = IRCChannel.this.getName();
-                String[] args = message.getArgs();
+        String[] tempNames = new String[this.names.size()];
+        tempNames = this.names.toArray(tempNames);
+        return tempNames;
+    }
 
-                switch(message.getType()) {
-                case RPL_NAMREPLY:
-                    if(args.length > 2 && args[2].equals(channelName)) {
-                        return true;
-                    }
-                    break;
-
-                case RPL_ENDOFNAMES:
-                    if(args.length > 1 && args[1].equals(channelName)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-        };
-
+    /**
+     * Makes a NAMES request to the server for this channel. Store the result
+     * replacing any existing names list. The list can be retrieved with
+     * IRCChannel#getNames
+     */
+    public void refreshNames() {
+        IRCMessage message = new IRCMessage(IRCMessageType.NAMES, this.name);
         NamesRequestHandler handler = new NamesRequestHandler();
 
-        this.client.addHandler(filter, handler);
-        this.client.getConnection().sendMessage(namesMessage);
-
-        String[] names = handler.getNames();
-        this.client.removeHandler(filter);
-
-        return names;
+        this.client.addHandler(handler, handler);
+        this.client.getConnection().sendMessage(message);
+        this.names = handler.getNames();
+        this.client.removeHandler(handler);
     }
 
     /**
@@ -218,7 +240,7 @@ public class IRCChannel implements IRCMessageHandler {
     @Override
     public void handleMessage(IRCMessage message) {
         IRCUser user = IRCUser.fromString(message.getPrefix());
-
+        
         switch(message.getType()) {
         case JOIN:
             /* Must have valid user prefix */
@@ -227,11 +249,16 @@ public class IRCChannel implements IRCMessageHandler {
             }
 
             /*
-             * Once we've received a join message from the server we have
-             * actually joined
+             * Once we've received a join message from the server we ourselves
+             * have actually joined
              */
             if(this.joined.isSet() == false) {
                 this.joined.set();
+            }
+
+            /* Add user to names list */
+            if(!this.names.contains(user.getNick())) {
+                this.names.add(user.getNick());
             }
 
             /* Call listeners */
@@ -244,6 +271,11 @@ public class IRCChannel implements IRCMessageHandler {
             /* Must have valid user prefix */
             if(user == null) {
                 break;
+            }
+
+            /* Remove nick from names list */
+            if(this.names.contains(user.getNick())) {
+                this.names.remove(user.getNick());
             }
 
             /* Call listeners */
@@ -261,6 +293,23 @@ public class IRCChannel implements IRCMessageHandler {
             /* Call listeners */
             for(IRCChannelListener listener : this.listeners) {
                 listener.onPrivateMessage(this, message.getArgs()[1], user);
+            }
+            break;
+
+        case QUIT:
+            /* Must have valid user prefix */
+            if(user == null) {
+                break;
+            }
+
+            /* Remove nick from names list */
+            if(this.names.contains(user.getNick())) {
+                this.names.remove(user.getNick());
+            }
+
+            /* Call listeners */
+            for(IRCChannelListener listener : this.listeners) {
+                listener.onQuit(this, user);
             }
             break;
 

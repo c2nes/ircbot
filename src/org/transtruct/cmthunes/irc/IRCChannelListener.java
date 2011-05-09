@@ -25,6 +25,16 @@ public interface IRCChannelListener {
      *            The user that parted
      */
     public void onPart(IRCChannel channel, IRCUser user);
+    
+    /**
+     * Called when a user quits the channel
+     * 
+     * @param channel
+     *            The channel that was quit from
+     * @param user
+     *            The user that parted
+     */
+    public void onQuit(IRCChannel channel, IRCUser user);
 
     /**
      * Called whenever a message is sent to the channel
