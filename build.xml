@@ -5,6 +5,7 @@
 	<path id="classpath">
         <pathelement location="lib/netty.jar" />
         <pathelement location="lib/htmlparser.jar" />
+        <pathelement location="lib/h2.jar" />
 		<pathelement path="${build}" />
 	</path>
 
@@ -13,10 +14,10 @@
 	</target>
 
 	<target name="build" depends="init">
-	    <javac srcdir="${src}" destdir="${build}" classpathref="classpath" />
+	    <javac srcdir="${src}" destdir="${build}" classpathref="classpath" includeantruntime="no" />
 	</target>
 	
 	<target name="run" depends="build">
-	    <java classname="org.transtruct.cmthunes.ircbot.Bot" classpathref="classpath" />
+	    <java classname="org.transtruct.cmthunes.ircbot.Bot" classpathref="classpath" fork="true" />
 	</target>
 </project>
