@@ -1,17 +1,24 @@
 package org.transtruct.cmthunes.ircbot;
 
 import java.net.*;
+import java.sql.*;
 
 import org.transtruct.cmthunes.irc.*;
 import org.transtruct.cmthunes.irc.messages.*;
 import org.transtruct.cmthunes.irc.messages.filter.*;
+import org.transtruct.cmthunes.irclog.*;
 
 public class Bot {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         InetSocketAddress addr = new InetSocketAddress("irc.brewtab.com", 6667);
 
         /* Create IRC client */
         IRCClient client = new IRCClient(addr);
+        
+        /* Create logger */
+        Class.forName("org.h2.Driver");
+        Connection connection = DriverManager.getConnection("jdbc:h2:/home/christopher/tempdb/test", "sa", "");
+        IRCLogger logger = new IRCLogger(connection);
 
         /* Will block until connection process is complete */
         client.connect("bot", "bot", "kitimat", "Mr. Bot");
@@ -31,10 +38,11 @@ public class Bot {
          * Join a channel. Channels can also be directly instantiated and
          * separately joined
          */
-        IRCChannel c = client.join("#bot");
+        IRCChannel c = client.join("#main");
 
         /* We add a handler for channel messages */
         c.addListener(new BotChannelListener());
+        c.addListener(logger);
 
         /* Wait for client object's connection to exit and close */
         client.getConnection().awaitClosed();
