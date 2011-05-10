@@ -119,7 +119,8 @@ public class IRCChannel implements IRCMessageHandler {
          */
         IRCMessageFilter channelFilter = IRCMessageFilters.newChannelFilter(name);
         IRCMessageFilter quitFilter = IRCMessageFilters.newTypeFilter(IRCMessageType.QUIT);
-        IRCMessageFilter filter = new IRCMessageOrFilter(channelFilter, quitFilter);
+        IRCMessageFilter nickFilter = IRCMessageFilters.newTypeFilter(IRCMessageType.NICK);
+        IRCMessageFilter filter = new IRCMessageOrFilter(channelFilter, quitFilter, nickFilter);
 
         this.client.addHandler(filter, this);
     }
@@ -310,6 +311,19 @@ public class IRCChannel implements IRCMessageHandler {
             /* Call listeners */
             for(IRCChannelListener listener : this.listeners) {
                 listener.onQuit(this, user);
+            }
+            break;
+            
+        case NICK:
+            /* Must have valid user prefix */
+            if(user == null) {
+                break;
+            }
+
+            /* Replace nick in names list */
+            if(this.names.contains(user.getNick())) {
+                this.names.remove(user.getNick());
+                this.names.add(message.getArgs()[0]);
             }
             break;
 
