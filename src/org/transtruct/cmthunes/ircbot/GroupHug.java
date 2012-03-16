@@ -2,6 +2,7 @@ package org.transtruct.cmthunes.ircbot;
 
 import java.io.*;
 import java.net.*;
+import java.util.*;
 
 import org.htmlparser.*;
 import org.htmlparser.lexer.*;
@@ -14,11 +15,20 @@ public class GroupHug {
     private String errorMessage;
     private Flag error;
     private Thread confessionFetcher;
+    private List<Integer> page_numbers;
 
     private class GetConfessions implements Runnable {
         @Override
         public void run() {
             while(true) {
+                try {
+                    int page = page_numbers.remove(0);
+                    page_numbers.add(page);
+                    url = new URL(String.format("http://archive.grouphug.us/frontpage?page=%d", page));
+                } catch(MalformedURLException e) {
+                    e.printStackTrace();
+                }
+
                 /* Wait for error flag to be cleared */
                 GroupHug.this.error.waitUninterruptiblyFor(false);
                 GroupHug.this.populateConfessions();
@@ -27,12 +37,15 @@ public class GroupHug {
     }
 
     public GroupHug() {
-        try {
-            this.url = new URL("http://grouphug.us/random");
-        } catch(MalformedURLException e) {
-            e.printStackTrace();
-        }
+        Random r = new Random();
 
+        this.page_numbers = new ArrayList<Integer>();
+        this.page_numbers.add(0);
+
+        for(int i = 1; i <= 200; i++) {
+            this.page_numbers.add(r.nextInt(this.page_numbers.size()), i);
+        }
+        
         this.confessions = new FixedBlockingBuffer<String>(10);
         this.errorMessage = null;
         this.error = new Flag();
@@ -91,7 +104,7 @@ public class GroupHug {
                                 confessionId = ((Text) node).getText();
                             }
                         } else if((tagName != null && tagClass != null)
-                                && (tagName.equals("div") && tagClass.equals("content"))) {
+                                && (tagName.equals("div") && tagClass.contains("content"))) {
                             StringBuffer confessionBuffer = new StringBuffer();
                             while(true) {
                                 node = lexer.nextNode();
