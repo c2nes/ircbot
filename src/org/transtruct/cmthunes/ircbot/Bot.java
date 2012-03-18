@@ -6,6 +6,7 @@ import java.sql.*;
 import org.transtruct.cmthunes.irc.*;
 import org.transtruct.cmthunes.irc.messages.*;
 import org.transtruct.cmthunes.irc.messages.filter.*;
+import org.transtruct.cmthunes.ircbot.applets.*;
 import org.transtruct.cmthunes.irclog.*;
 
 public class Bot {
@@ -17,11 +18,34 @@ public class Bot {
         
         /* Create logger */
         Class.forName("org.h2.Driver");
-        Connection connection = DriverManager.getConnection("jdbc:h2:/home/christopher/tempdb/test", "sa", "");
+        Connection connection = DriverManager.getConnection("jdbc:h2:brewtab", "sa", "");
         IRCLogger logger = new IRCLogger(connection);
 
+        /* Register applets with the bot */
+        BotChannelListener botChannelListener = new BotChannelListener();
+        GroupHugApplet groupHugApplet = new GroupHugApplet();
+        TextsFromLastNightApplet textsFromLastNightApplet = new TextsFromLastNightApplet();
+        CalcApplet calcApplet = new CalcApplet();
+        WeatherApplet weatherApplet = new WeatherApplet();
+        StatsApplet statsApplet = new StatsApplet(logger);
+
+        botChannelListener.registerApplet("gh", groupHugApplet);
+        botChannelListener.registerApplet("grouphug", groupHugApplet);
+
+        botChannelListener.registerApplet("tfln", textsFromLastNightApplet);
+        botChannelListener.registerApplet("texts", textsFromLastNightApplet);
+
+        botChannelListener.registerApplet("m", calcApplet);
+        botChannelListener.registerApplet("math", calcApplet);
+        botChannelListener.registerApplet("calc", calcApplet);
+
+        botChannelListener.registerApplet("w", weatherApplet);
+        botChannelListener.registerApplet("weather", weatherApplet);
+
+        botChannelListener.registerApplet("last", statsApplet);
+
         /* Will block until connection process is complete */
-        client.connect("bot", "bot", "kitimat", "Mr. Bot");
+        client.connect("testbot", "bot", "kitimat", "Mr. Bot");
 
         /*
          * We can add a message handler for the client to print all messages
@@ -38,10 +62,10 @@ public class Bot {
          * Join a channel. Channels can also be directly instantiated and
          * separately joined
          */
-        IRCChannel c = client.join("#main");
+        IRCChannel c = client.join("#bot");
 
         /* We add a handler for channel messages */
-        c.addListener(new BotChannelListener());
+        c.addListener(botChannelListener);
         c.addListener(logger);
 
         /* Wait for client object's connection to exit and close */

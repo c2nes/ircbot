@@ -1,9 +1,11 @@
-package org.transtruct.cmthunes.ircbot;
+package org.transtruct.cmthunes.ircbot.applets;
 
 import java.util.*;
 import java.util.regex.*;
 
-public class Calc {
+import org.transtruct.cmthunes.irc.*;
+
+public class CalcApplet implements BotApplet {
     private enum OperatorType {
         BINARY, UNARY;
     };
@@ -331,5 +333,37 @@ public class Calc {
     public static double evaluateExpression(String expression) throws Exception {
         ArrayList<String> tokens = tokenizeExpression(expression);
         return evaluateSubExpression(tokens, 0, tokens.size() - 1);
+    }
+
+    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+        String expression = unparsed;
+
+        try {
+            String outFormat = "float";
+            if(expression.contains("as")) {
+                String[] parts = expression.split("as");
+                expression = parts[0].trim();
+                outFormat = parts[1].trim().toLowerCase();
+            }
+
+            double result = CalcApplet.evaluateExpression(expression);
+            String sResult = null;
+
+            if(outFormat.equals("float")) {
+                sResult = String.format("%.10f", result);
+                sResult = sResult.replaceFirst("0*$", "");
+                sResult = sResult.replaceFirst("\\.$", "");
+            } else if(outFormat.equals("hex")) {
+                sResult = "0x" + Integer.toString((int) result, 16);
+            } else if(outFormat.equals("bin")) {
+                sResult = "0b" + Integer.toString((int) result, 2);
+            } else {
+                sResult = "Invalid conversion specifier";
+            }
+
+            channel.write(String.format("%s: %s", from.getNick(), sResult));
+        } catch(Exception e) {
+            channel.write(String.format("%s: %s", from.getNick(), e.getMessage()));
+        }
     }
 }

@@ -1,4 +1,4 @@
-package org.transtruct.cmthunes.ircbot;
+package org.transtruct.cmthunes.ircbot.applets;
 
 import java.io.*;
 import java.net.*;
@@ -9,7 +9,9 @@ import org.htmlparser.lexer.*;
 import org.htmlparser.util.*;
 import org.transtruct.cmthunes.util.*;
 
-public class GroupHug {
+import org.transtruct.cmthunes.irc.*;
+
+public class GroupHugApplet implements BotApplet {
     private URL url;
     private FixedBlockingBuffer<String> confessions;
     private String errorMessage;
@@ -30,13 +32,13 @@ public class GroupHug {
                 }
 
                 /* Wait for error flag to be cleared */
-                GroupHug.this.error.waitUninterruptiblyFor(false);
-                GroupHug.this.populateConfessions();
+                GroupHugApplet.this.error.waitUninterruptiblyFor(false);
+                GroupHugApplet.this.populateConfessions();
             }
         }
     }
 
-    public GroupHug() {
+    public GroupHugApplet() {
         Random r = new Random();
 
         this.page_numbers = new ArrayList<Integer>();
@@ -160,5 +162,11 @@ public class GroupHug {
         } else {
             return "Fetching thread died";
         }
+    }
+
+    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+        String confession = this.getConfession();
+        String[] parts = BotAppletUtil.blockFormat(confession, 300, 10);
+        channel.writeMultiple(parts);
     }
 }

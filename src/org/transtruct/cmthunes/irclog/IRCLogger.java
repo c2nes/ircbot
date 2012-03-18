@@ -38,6 +38,10 @@ public class IRCLogger implements IRCChannelListener {
         statement.executeBatch();
     }
     
+    public PreparedStatement prepareQuery(String query) throws SQLException {
+        return this.db.prepareStatement(query);
+    }
+    
     private void openSession(Timestamp timestamp) throws SQLException {
         PreparedStatement statement = this.db.prepareStatement("INSERT INTO sessions (start_time, active) VALUES (?, TRUE)");
         statement.setTimestamp(1, timestamp);
@@ -200,12 +204,5 @@ public class IRCLogger implements IRCChannelListener {
         } catch(SQLException e) {
             e.printStackTrace();
         }
-    }
-    
-    public static void main(String[] args) throws Exception {
-        Class.forName("org.h2.Driver");
-        Connection connection = DriverManager.getConnection("jdbc:h2:/home/christopher/tempdb/test", "sa", "");
-        IRCLogger logger = new IRCLogger(connection);
-        //logger.addFromIrssiLog("#main", new FileReader("/home/christopher/main.log"));
     }
 }

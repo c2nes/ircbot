@@ -1,4 +1,4 @@
-package org.transtruct.cmthunes.ircbot;
+package org.transtruct.cmthunes.ircbot.applets;
 
 import java.io.*;
 import java.net.*;
@@ -8,7 +8,9 @@ import org.htmlparser.lexer.*;
 import org.htmlparser.util.*;
 import org.transtruct.cmthunes.util.*;
 
-public class TextsFromLastNight {
+import org.transtruct.cmthunes.irc.*;
+
+public class TextsFromLastNightApplet implements BotApplet {
     private URL url;
     private FixedBlockingBuffer<String> texts;
     private String errorMessage;
@@ -20,13 +22,13 @@ public class TextsFromLastNight {
         public void run() {
             while(true) {
                 /* Wait for error flag to be cleared */
-                TextsFromLastNight.this.error.waitUninterruptiblyFor(false);
-                TextsFromLastNight.this.populateTexts();
+                TextsFromLastNightApplet.this.error.waitUninterruptiblyFor(false);
+                TextsFromLastNightApplet.this.populateTexts();
             }
         }
     }
 
-    public TextsFromLastNight(String urlString) {
+    public TextsFromLastNightApplet(String urlString) {
         try {
             this.url = new URL(urlString);
         } catch(MalformedURLException e) {
@@ -42,7 +44,7 @@ public class TextsFromLastNight {
         this.textFetcher.start();
     }
 
-    public TextsFromLastNight() {
+    public TextsFromLastNightApplet() {
         this("http://www.textsfromlastnight.com/Random-Texts-From-Last-Night.html");
     }
 
@@ -107,5 +109,11 @@ public class TextsFromLastNight {
         } else {
             return "Fetching thread died";
         }
+    }
+
+    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+        String text = this.getText();
+        String[] parts = BotAppletUtil.blockFormat(text, 300, 10);
+        channel.writeMultiple(parts);
     }
 }

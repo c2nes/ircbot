@@ -3,17 +3,23 @@ package org.transtruct.cmthunes.ircbot;
 import java.util.*;
 
 import org.transtruct.cmthunes.irc.*;
-import org.transtruct.cmthunes.weather.*;
+import org.transtruct.cmthunes.ircbot.applets.*;
 
-public class BotChannelListener implements IRCChannelListener {
-    private GroupHug grouphug;
-    private TextsFromLastNight tfln;
-    private WeatherService weather;
+public class BotChannelListener implements IRCChannelListener, BotApplet {
+    private HashMap<String, BotApplet> applets;
 
     public BotChannelListener() {
-        this.grouphug = new GroupHug();
-        this.tfln = new TextsFromLastNight();
-        this.weather = new WeatherService();
+        this.applets = new HashMap<String, BotApplet>();
+
+        /* Register built in commands */
+        this.registerApplet("help", this);
+        this.registerApplet("commands", this);
+        this.registerApplet("quit", this);
+        this.registerApplet("echo", this);
+    }
+
+    public void registerApplet(String command_name, BotApplet applet) {
+        this.applets.put(command_name, applet);
     }
 
     @Override
@@ -28,170 +34,136 @@ public class BotChannelListener implements IRCChannelListener {
 
     @Override
     public void onQuit(IRCChannel channel, IRCUser user) {
-        channel.write("Bye!");
-        for(String nick : channel.getNames()) {
-            channel.write("wobl " + nick);
+        // -
+    }
+
+    private String[] parseArgs(String argString) {
+        ArrayList<String> args = new ArrayList<String>();
+        StringBuilder sb = new StringBuilder();
+        char c;
+        int state = 0;
+
+        for(int i = 0; i < argString.length(); i++) {
+            c = argString.charAt(i);
+            
+            switch(state) {
+            case 0:
+                /* Consume whitespace */
+                if(Character.isWhitespace(c)) {
+                    break;
+                }
+                state = 1;
+
+            case 1:
+                if(c == '\"') {
+                    /* Enter quoted string */
+                    state = 2;
+                } else if(Character.isWhitespace(c)) {
+                    /* End of argument */
+                    args.add(sb.toString());
+                    sb = new StringBuilder();
+                    state = 0;
+                } else {
+                    sb.append(c);
+                }
+                break;
+
+            case 2:
+                if(c == '\\') {
+                    state = 3;
+                } else if(c == '\"') {
+                    state = 1;
+                } else {
+                    sb.append(c);
+                }
+                break;
+
+            case 3:
+                sb.append(c);
+                state = 2;
+                break;
+            }
         }
+
+        if(state == 2 || state == 3) {
+            /* Unmatched quote */
+            return null;
+        }
+        
+        /* Store last argument */
+        if(sb.length() > 0) {
+            args.add(sb.toString());
+        }
+
+        return args.toArray(new String[0]);
     }
 
     @Override
     public void onPrivateMessage(IRCChannel channel, String message, IRCUser from) {
         String myNick = channel.getClient().getUser().getNick();
+        String command = null;
+        String unparsedArgs = null;
         message = message.trim();
 
-        if(message.matches("\\.quit") && from.getNick().equals("c2nes")) {
-            channel.getClient().quit("Leaving");
-
-        } else if(message.matches("\\.names")) {
-            StringBuilder builder = new StringBuilder();
-            for(String nick : channel.getNames()) {
-                builder.append(nick);
-                builder.append(" ");
+        /* Possible command */
+        if(message.startsWith(myNick + ": ")) {
+            String[] parts = message.split("[ ]+", 3);
+            
+            if(parts.length == 3) {
+                command = parts[1];
+                unparsedArgs = parts[2].trim();
+            } else if(parts.length == 2) {
+                command = parts[1];
+                unparsedArgs = "";
             }
-            channel.write(builder.toString());
+        } else if(message.startsWith(".")) {
+            String[] parts = message.substring(1).split("[ ]+", 2);
+            
+            if(parts.length == 2) {
+                command = parts[0];
+                unparsedArgs = parts[1].trim();
+            } else if(parts.length == 1) {
+                command = parts[0];
+                unparsedArgs = "";
+            }
+        }
 
-        } else if(message.matches("\\.gh")) {
-            String confession = this.grouphug.getConfession();
-            String[] parts = blockFormat(confession, 100, 10);
-            channel.writeMultiple(parts);
+        if(command != null) {
+            if(this.applets.containsKey(command)) {
+                String[] args = this.parseArgs(unparsedArgs);
+                BotApplet applet = this.applets.get(command);
 
-        } else if(message.matches("\\.tfln")) {
-            String text = this.tfln.getText();
-            String[] parts = blockFormat(text, 300, 10);
-            channel.writeMultiple(parts);
-
-        } else if(message.startsWith(".m")) {
-            String query = message.replaceFirst(".m", "").trim();
-            String reply = this.doMath(query);
-            channel.write(String.format("%s: %s", from.getNick(), reply));
-
-        } else if(message.matches("\\.w\\s+.+")) {
-            try {
-                boolean useAirport = true;
-                StringBuilder query = new StringBuilder();
-
-                for(String arg : message.substring(2).trim().split("\\s+")) {
-                    if(arg.trim().equals("-l")) {
-                        useAirport = false;
-                    } else {
-                        query.append(arg + " ");
-                    }
-                }
-
-                List<Location> locations = this.weather
-                        .searchLocation(query.toString().trim(), useAirport, !useAirport);
-
-                if(locations.size() == 0) {
-                    channel.write("No stations found");
+                if(args == null) {
+                    channel.write("Mismatched quotes in argument");
                 } else {
-                    Location location = locations.get(0);
-
-                    if(!useAirport) {
-                        for(Location pws_l : locations) {
-                            PersonalWeatherStation pws = (PersonalWeatherStation) pws_l;
-                            if(pws.getDistance() < ((PersonalWeatherStation) location).getDistance()) {
-                                location = pws;
-                            }
-                        }
-                    }
-
-                    WeatherCondition condition = this.weather.getCondition(location);
-                    String response = null;
-                    String locString = location.getCity();
-
-                    if(location instanceof PersonalWeatherStation) {
-                        String neighborhood = ((PersonalWeatherStation) location).getNeighborhood();
-                        if(neighborhood != null && !neighborhood.equals("")) {
-                            locString = neighborhood;
-                        }
-                    }
-
-                    response = String.format("%s: %dC (%dF) %s", locString, (int) condition.getTempC(),
-                            (int) condition.getTempF(), condition.getConditionString());
-                    channel.write(response);
+                    applet.run(channel, from, command, args, unparsedArgs);
                 }
-            } catch(WeatherException e) {
-                channel.write(e.getMessage());
-            }
-
-        } else if(message.matches(String.format("^%s\\b.*", myNick))) {
-            String request = message.replaceFirst(myNick + "[:, ]+", "").trim();
-
-            if(request.length() == 0) {
-                channel.write(from.getNick() + ": Yes?");
-
-            } else if(request.toLowerCase().matches("hello|hi")) {
-                channel.write(from.getNick() + ": Hello");
-
-            } else {
-                channel.write(from.getNick() + ": That's not what your mother said");
-
+            } else if(message.startsWith(myNick + ": ")) {
+                /* Only bother to respond to unknown commands if the bot is
+                 * asked directly (rather than with a leading '.') */
+                channel.write("Unknown command");
             }
         }
     }
 
-    private String doMath(String expression) {
-        try {
-            String outFormat = "float";
-            if(expression.contains("as")) {
-                String[] parts = expression.split("as");
-                expression = parts[0].trim();
-                outFormat = parts[1].trim().toLowerCase();
+    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+        if(command.equals("help") || command.equals("commands")) {
+            Set<String> commands = this.applets.keySet();
+            StringBuilder sb = new StringBuilder();
+
+            sb.append("Commands:");
+            for(String cmd : commands) {
+                sb.append(" ");
+                sb.append(cmd);
             }
 
-            double result = Calc.evaluateExpression(expression);
-            String sResult = null;
-
-            if(result == 42 && outFormat.equals("float")) {
-                sResult = "The meaning of life";
-            } else if(outFormat.equals("float")) {
-                sResult = String.format("%.10f", result);
-                sResult = sResult.replaceFirst("0*$", "");
-                sResult = sResult.replaceFirst("\\.$", "");
-            } else if(outFormat.equals("hex")) {
-                sResult = "0x" + Integer.toString((int) result, 16);
-            } else if(outFormat.equals("bin")) {
-                sResult = "0b" + Integer.toString((int) result, 2);
-            } else {
-                sResult = "Invalid conversion specifier";
+            channel.write(sb.toString());
+        } else if(command.equals("quit") && from.getNick().equals("c2nes")) {
+            channel.getClient().quit("Leaving");
+        } else if(command.equals("echo")) {
+            for(String arg : args) {
+                channel.write(arg);
             }
-
-            return sResult;
-        } catch(Exception e) {
-            return e.getMessage();
         }
-    }
-
-    private static String[] blockFormat(String text, int width, int play) {
-        ArrayList<String> messages = new ArrayList<String>();
-        String[] lines = text.split("\n");
-
-        for(String line : lines) {
-            line = line.trim();
-
-            int i = 0;
-            int length = 0;
-
-            while(line.length() - i > width) {
-                length = width - play;
-                while(length < width) {
-                    if(line.charAt(i + length) == ' ') {
-                        break;
-                    }
-
-                    length++;
-                }
-
-                String part = line.substring(i, i + length);
-                i += length;
-
-                messages.add(part.trim());
-            }
-            messages.add(line.substring(i).trim());
-        }
-
-        String[] messagesArray = new String[messages.size()];
-        messagesArray = messages.toArray(messagesArray);
-        return messagesArray;
     }
 }
