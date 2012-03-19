@@ -26,7 +26,7 @@ public class BashApplet implements BotApplet {
         html = html.replaceAll("&gt;", ">");
         String[] text = html.split("<br />");
         for (int i=0; i < text.length; i++) {
-                text[i] = text[i].trim();
+            text[i] = text[i].trim();
         }
         return text;
     }
