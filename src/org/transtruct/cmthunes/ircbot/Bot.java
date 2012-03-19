@@ -29,7 +29,7 @@ public class Bot {
         CalcApplet calcApplet = new CalcApplet();
         WeatherApplet weatherApplet = new WeatherApplet();
         StatsApplet statsApplet = new StatsApplet(logger);
-        BashApplet bashApplet = new BashApplet();
+        
         botChannelListener.registerApplet("bash", bashApplet);
 
         botChannelListener.registerApplet("gh", groupHugApplet);
