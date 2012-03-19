@@ -30,6 +30,7 @@ public class Bot {
         StatsApplet statsApplet = new StatsApplet(logger);
         BashApplet bashApplet = new BashApplet();
         WikiApplet wikiApplet = new WikiApplet();
+        TumblrApplet tumblrApplet = new TumblrApplet();
 
         botChannelListener.registerApplet("gh", groupHugApplet);
         botChannelListener.registerApplet("grouphug", groupHugApplet);
@@ -50,8 +51,10 @@ public class Bot {
 
         botChannelListener.registerApplet("wiki", wikiApplet);
 
+        botChannelListener.registerApplet("tumblr", tumblrApplet);
+
         /* Will block until connection process is complete */
-        client.connect("testbot", "bot", "kitimat", "Mr. Bot");
+        client.connect("bot", "bot", "kitimat", "Mr. Bot");
 
         /*
          * We can add a message handler for the client to print all messages
