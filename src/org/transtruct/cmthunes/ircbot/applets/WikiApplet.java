@@ -21,9 +21,27 @@ public class WikiApplet implements BotApplet {
         }
 
         try {
-            String encodedArticleName = URLEncoder.encode(unparsed.replace(" ", "_"), "UTF8");
-            url = String.format("http://en.wikipedia.org/wiki/%s", encodedArticleName);
-            doc = Jsoup.connect(url).get();
+            String encodedSearchTerm = URLEncoder.encode(unparsed, "UTF8");
+            Connection con;
+
+            /* Compose search string */
+            url = String.format("http://en.wikipedia.org/w/index.php?search=%s", encodedSearchTerm);
+
+            while(true) {
+                con = Jsoup.connect(url);
+                con.followRedirects(false);
+                con.execute();
+            
+                if(con.response().statusCode() == 200) {
+                    doc = con.response().parse();
+                    break;
+                } else if(con.response().statusCode() == 302) {
+                    url = con.response().header("Location");
+                } else {
+                    channel.write("Could not find page");
+                    return;
+                }
+            }
         } catch (IOException e) {
             channel.write("No such article");
             return;
@@ -41,6 +59,8 @@ public class WikiApplet implements BotApplet {
 
                     channel.write(url);
                     channel.writeMultiple(BotAppletUtil.blockFormat(summary, 400, 10));
+                } else {
+                    channel.write("Can not get article summary");
                 }
             } catch(Exception e) {
                 e.printStackTrace();
