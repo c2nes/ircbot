@@ -35,6 +35,8 @@ public class IRCLogger implements IRCChannelListener {
         statement.addBatch("CREATE TABLE IF NOT EXISTS message_log"
         		+ " (id INT AUTO_INCREMENT PRIMARY KEY, msg_time TIMESTAMP, channel VARCHAR(32), from_nick VARCHAR(32), message VARCHAR);");
 
+        statement.addBatch("CREATE INDEX IF NOT EXISTS idxmessages ON message_log(from_nick, channel)");
+
         statement.executeBatch();
     }
     
