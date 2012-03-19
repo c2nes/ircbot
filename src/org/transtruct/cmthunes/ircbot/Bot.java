@@ -29,8 +29,7 @@ public class Bot {
         WeatherApplet weatherApplet = new WeatherApplet();
         StatsApplet statsApplet = new StatsApplet(logger);
         BashApplet bashApplet = new BashApplet();
-
-        botChannelListener.registerApplet("bash", bashApplet);
+        WikiApplet wikiApplet = new WikiApplet();
 
         botChannelListener.registerApplet("gh", groupHugApplet);
         botChannelListener.registerApplet("grouphug", groupHugApplet);
@@ -46,6 +45,10 @@ public class Bot {
         botChannelListener.registerApplet("weather", weatherApplet);
 
         botChannelListener.registerApplet("last", statsApplet);
+
+        botChannelListener.registerApplet("bash", bashApplet);
+
+        botChannelListener.registerApplet("wiki", wikiApplet);
 
         /* Will block until connection process is complete */
         client.connect("testbot", "bot", "kitimat", "Mr. Bot");
