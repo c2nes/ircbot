@@ -23,13 +23,13 @@ public class Bot {
 
         /* Register applets with the bot */
         BotChannelListener botChannelListener = new BotChannelListener();
+        BashApplet bashApplet = new BashApplet();
         GroupHugApplet groupHugApplet = new GroupHugApplet();
         TextsFromLastNightApplet textsFromLastNightApplet = new TextsFromLastNightApplet();
         CalcApplet calcApplet = new CalcApplet();
         WeatherApplet weatherApplet = new WeatherApplet();
         StatsApplet statsApplet = new StatsApplet(logger);
         BashApplet bashApplet = new BashApplet();
-
         botChannelListener.registerApplet("bash", bashApplet);
 
         botChannelListener.registerApplet("gh", groupHugApplet);
