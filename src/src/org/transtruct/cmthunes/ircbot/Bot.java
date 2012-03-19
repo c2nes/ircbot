@@ -54,7 +54,7 @@ public class Bot {
         botChannelListener.registerApplet("tumblr", tumblrApplet);
 
         /* Will block until connection process is complete */
-        client.connect("lampebot", "bot", "kitimat", "Mr. Bot");
+        client.connect("bot", "bot", "kitimat", "Mr. Bot");
 
         /*
          * We can add a message handler for the client to print all messages
@@ -71,7 +71,7 @@ public class Bot {
          * Join a channel. Channels can also be directly instantiated and
          * separately joined
          */
-        IRCChannel c = client.join("#main");
+        IRCChannel c = client.join("#bot");
 
         /* We add a handler for channel messages */
         c.addListener(botChannelListener);
