@@ -6,6 +6,7 @@
         <pathelement location="lib/netty.jar" />
         <pathelement location="lib/htmlparser.jar" />
         <pathelement location="lib/h2.jar" />
+        <pathelement location="lib/jsoup.jar" />
 		<pathelement path="${build}" />
 	</path>
 
