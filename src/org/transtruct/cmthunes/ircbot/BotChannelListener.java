@@ -136,7 +136,11 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
                 if(args == null) {
                     channel.write("Mismatched quotes in argument");
                 } else {
-                    applet.run(channel, from, command, args, unparsedArgs);
+                    try {
+                        applet.run(channel, from, command, args, unparsedArgs);
+                    } catch(Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             } else if(message.startsWith(myNick + ": ")) {
                 /* Only bother to respond to unknown commands if the bot is
