@@ -31,6 +31,7 @@ public class Bot {
         BashApplet bashApplet = new BashApplet();
         WikiApplet wikiApplet = new WikiApplet();
         TumblrApplet tumblrApplet = new TumblrApplet();
+        WolframAlphaApplet wolframAlphaApplet = new WolframAlphaApplet("XXXX");
 
         botChannelListener.registerApplet("gh", groupHugApplet);
         botChannelListener.registerApplet("grouphug", groupHugApplet);
@@ -52,6 +53,8 @@ public class Bot {
         botChannelListener.registerApplet("wiki", wikiApplet);
 
         botChannelListener.registerApplet("tumblr", tumblrApplet);
+
+        botChannelListener.registerApplet("alpha", wolframAlphaApplet);
 
         /* Will block until connection process is complete */
         client.connect("bot", "bot", "kitimat", "Mr. Bot");
