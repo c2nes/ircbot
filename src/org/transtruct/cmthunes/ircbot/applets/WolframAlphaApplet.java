@@ -45,15 +45,25 @@ public class WolframAlphaApplet implements BotApplet {
 
         url.setParameter("appid", this.appid);
         url.setParameter("format", "plaintext");
+        url.setParameter("reinterpret", "true");
         url.setParameter("input", query);
             
         try {
             Document doc = this.documentBuilder.parse(url.toString());
             String success = this.xpath.evaluate("/queryresult/@success", doc);
-            String result = this.xpath.evaluate("//pod[@primary]/subpod/plaintext", doc);
 
             if(success.equals("true")) {
-                channel.writeMultiple(result.split("\n"));
+                String result = this.xpath.evaluate("//pod[@primary]/subpod/plaintext", doc);
+                
+                if(result.equals("")) {
+                    result = this.xpath.evaluate("//pod[2]/subpod/plaintext", doc);
+                }
+                
+                if(result.equals("")) {
+                    channel.write("Could not get results");
+                } else {
+                    channel.writeMultiple(result.split("\n"));
+                }
             } else {
                 channel.write("Could not interpret query");
             }
