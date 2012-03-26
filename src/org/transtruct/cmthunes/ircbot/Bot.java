@@ -32,6 +32,7 @@ public class Bot {
         WikiApplet wikiApplet = new WikiApplet();
         TumblrApplet tumblrApplet = new TumblrApplet();
         WolframAlphaApplet wolframAlphaApplet = new WolframAlphaApplet("XXXX");
+        SpellApplet spellApplet = new SpellApplet();
 
         botChannelListener.registerApplet("gh", groupHugApplet);
         botChannelListener.registerApplet("grouphug", groupHugApplet);
@@ -55,6 +56,10 @@ public class Bot {
         botChannelListener.registerApplet("tumblr", tumblrApplet);
 
         botChannelListener.registerApplet("alpha", wolframAlphaApplet);
+        botChannelListener.registerApplet("a", wolframAlphaApplet);
+
+        botChannelListener.registerApplet("spell", spellApplet);
+        botChannelListener.registerApplet("sp", spellApplet);
 
         /* Will block until connection process is complete */
         client.connect("bot", "bot", "kitimat", "Mr. Bot");
