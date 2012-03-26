@@ -9,26 +9,30 @@ import org.jsoup.nodes.*;
 import org.jsoup.select.*;
 
 import org.transtruct.cmthunes.irc.*;
+import org.transtruct.cmthunes.util.*;
 
 public class WikiApplet implements BotApplet {
     public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
         Document doc;
-        String url;
+        URLBuilder url;
 
         if(unparsed.trim().length() == 0) {
             channel.write("Missing article name");
             return;
         }
+        
+        if(unparsed.trim().equals("-r")) {
+            unparsed = "Special:Random";
+        }
 
         try {
-            String encodedSearchTerm = URLEncoder.encode(unparsed, "UTF8");
             Connection con;
 
-            /* Compose search string */
-            url = String.format("http://en.wikipedia.org/w/index.php?search=%s", encodedSearchTerm);
+            url = new URLBuilder("http://en.wikipedia.org/w/index.php");
+            url.setParameter("search", unparsed);
 
             while(true) {
-                con = Jsoup.connect(url);
+                con = Jsoup.connect(url.toString());
                 con.followRedirects(false);
                 con.execute();
             
@@ -36,12 +40,15 @@ public class WikiApplet implements BotApplet {
                     doc = con.response().parse();
                     break;
                 } else if(con.response().statusCode() == 302) {
-                    url = con.response().header("Location");
+                    url = new URLBuilder(con.response().header("Location"));
                 } else {
                     channel.write("Could not find page");
                     return;
                 }
             }
+        } catch(MalformedURLException e) {
+            e.printStackTrace();
+            return;
         } catch (IOException e) {
             channel.write("No such article");
             return;
@@ -57,7 +64,7 @@ public class WikiApplet implements BotApplet {
                     Element p = elements.first();
                     String summary = p.text();
 
-                    channel.write(url);
+                    channel.write(url.toString());
                     channel.writeMultiple(BotAppletUtil.blockFormat(summary, 400, 10));
                 } else {
                     channel.write("Can not get article summary");
