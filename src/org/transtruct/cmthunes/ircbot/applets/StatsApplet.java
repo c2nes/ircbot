@@ -40,6 +40,32 @@ public class StatsApplet implements BotApplet {
                     channel.write(String.format("%s said \"%s\" at %s", nick, event.getData(), formattedDate));
                 }
             }
+        } else if(command.equals("bored")) {
+            final String[] boredCommands = {".bored", ".gh", ".grouphug", ".tfln",
+                                            ".texts", ".bash", ".tumblr", ".a", 
+                                            ".alpha"};
+            String nick = from.getNick();
+            List<IRCLogEvent> messages;
+            int count = 0;
+            
+            if(args.length > 0) {
+                nick = args[0];
+            }
+
+            messages = stats.findMessages(channel.getName(), nick, ".", IRCStatistics.SEARCH_STARTSWITH);
+            
+            for(IRCLogEvent message : messages) {
+                String data = message.getData();
+
+                for(String boredCommand : boredCommands) {
+                    if(data.startsWith(boredCommand)) {
+                        count++;
+                        break;
+                    }
+                }
+            }
+
+            channel.write(String.format("%s is %d many bored", nick, count));
         }
     }
 }

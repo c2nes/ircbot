@@ -48,6 +48,7 @@ public class Bot {
         botChannelListener.registerApplet("weather", weatherApplet);
 
         botChannelListener.registerApplet("last", statsApplet);
+        botChannelListener.registerApplet("bored", statsApplet);
 
         botChannelListener.registerApplet("bash", bashApplet);
 
