@@ -128,7 +128,7 @@ public class GroupHugApplet implements BotApplet {
                                 if(node instanceof Text) {
                                     String confessionPart = ((Text) node).getText();
                                     confessionPart = Translate.decode(confessionPart);
-                                    confessionPart = confessionPart.replaceAll("’", "'");
+                                    confessionPart = confessionPart.replaceAll("\u2019", "'");
                                     confessionBuffer.append(confessionPart.trim());
                                 }
                             }
