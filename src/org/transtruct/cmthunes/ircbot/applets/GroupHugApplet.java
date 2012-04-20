@@ -65,6 +65,7 @@ public class GroupHugApplet implements BotApplet {
         try {
             connection = Jsoup.connect(this.url);
             connection.userAgent("Wget/1.13.4 (linux-gnu)");
+            connection.timeout(5000);
             connection.ignoreHttpErrors(true);
             connection.execute();
             
@@ -76,7 +77,10 @@ public class GroupHugApplet implements BotApplet {
             }
 
             doc = response.parse();
-        } catch (IOException e) {
+        } catch(SocketTimeoutException e) {
+            System.err.println("Grouphug request timed out. Waiting before retrying");
+            return;
+        } catch(IOException e) {
             e.printStackTrace();
             return;
         }
@@ -86,8 +90,11 @@ public class GroupHugApplet implements BotApplet {
                 confessionId = element.select("a").get(0).text().trim();
                 confession = element.select("p").get(0).text().trim();
                 blurb = confessionId + ": " + confession;
-                
-                this.confessions.add(blurb);
+
+                /* tl;dr check */
+                if(blurb.length() < 800) {
+                    this.confessions.add(blurb);
+                }
             } catch(IndexOutOfBoundsException e) {
                 /* Failed to find needed elements */
                 this.errorMessage = "Parser error";
