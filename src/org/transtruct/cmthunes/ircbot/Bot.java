@@ -34,6 +34,7 @@ public class Bot {
         WolframAlphaApplet wolframAlphaApplet = new WolframAlphaApplet("XXXX");
         SpellApplet spellApplet = new SpellApplet();
         EightBallApplet eightBallApplet = new EightBallApplet();
+        UrbanDictionaryApplet urbanDictionaryApplet = new UrbanDictionaryApplet();
 
         botChannelListener.registerApplet("gh", groupHugApplet);
         botChannelListener.registerApplet("grouphug", groupHugApplet);
@@ -64,6 +65,8 @@ public class Bot {
         botChannelListener.registerApplet("sp", spellApplet);
 
         botChannelListener.registerApplet("8ball", eightBallApplet);
+        
+        botChannelListener.registerApplet("urban", urbanDictionaryApplet);
 
         /* Will block until connection process is complete */
         client.connect("bot", "bot", "kitimat", "Mr. Bot");
