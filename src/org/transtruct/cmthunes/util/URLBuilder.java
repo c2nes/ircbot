@@ -53,6 +53,10 @@ public class URLBuilder {
         }
     }
     
+    public String getQueryParameter(String key) {
+        return this.queryItems.get(key);
+    }
+    
     private void extractQueryItems(String query) {
         String[] items = query.split("&");
 
