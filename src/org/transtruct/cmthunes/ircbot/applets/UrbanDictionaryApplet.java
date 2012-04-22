@@ -36,10 +36,14 @@ public class UrbanDictionaryApplet implements BotApplet {
         Document doc;
         URLBuilder url;
         int definitionIndex = 0;
+        boolean random = false;
         
         if(unparsed.trim().length() == 0) {
-            channel.write("Missing search term");
-            return;
+            random = true;
+        }
+
+        if(args.length == 1 && args[0].equals("-r")) {
+            random = true;
         }
         
         if(args.length >= 2 && args[0].startsWith("-")) {
@@ -55,8 +59,12 @@ public class UrbanDictionaryApplet implements BotApplet {
         try {
             Connection con;
 
-            url = new URLBuilder("http://www.urbandictionary.com/define.php");
-            url.setParameter("term", unparsed);
+            if(random) {
+                url = new URLBuilder("http://www.urbandictionary.com/random.php");
+            } else {
+                url = new URLBuilder("http://www.urbandictionary.com/define.php");
+                url.setParameter("term", unparsed);
+            }
 
             while(true) {
                 con = Jsoup.connect(url.toString());
@@ -98,7 +106,7 @@ public class UrbanDictionaryApplet implements BotApplet {
                         }
                     }
 
-                    response = unparsed + ": " + longestLine;
+                    response = url.getQueryParameter("term") + ": " + longestLine;
                     channel.writeMultiple(BotAppletUtil.blockFormat(response, 400, 10));
                 } else {
                     channel.write("Can not get definition");
