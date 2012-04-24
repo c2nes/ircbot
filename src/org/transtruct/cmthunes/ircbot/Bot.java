@@ -51,6 +51,7 @@ public class Bot {
 
         botChannelListener.registerApplet("last", statsApplet);
         botChannelListener.registerApplet("bored", statsApplet);
+        botChannelListener.registerApplet("tired", statsApplet);
 
         botChannelListener.registerApplet("bash", bashApplet);
 

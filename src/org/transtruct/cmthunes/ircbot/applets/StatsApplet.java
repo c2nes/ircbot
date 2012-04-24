@@ -66,6 +66,17 @@ public class StatsApplet implements BotApplet {
             }
 
             channel.write(String.format("%s is %d many bored", nick, count));
+        } else if (command.equals("tired")) {
+            String nick = from.getNick();
+            List<IRCLogEvent> messages;
+
+            if(args.length > 0) {
+                nick = args[0];
+            }
+
+            messages = stats.findMessages(channel.getName(), nick, "*yawn*", IRCStatistics.SEARCH_CONTAINS);
+        
+            channel.write(String.format("%s is %d many tired", nick, messages.size()));    
         }
     }
 }
