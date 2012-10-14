@@ -12,7 +12,7 @@
   <artifactId>brewtab-ircbot</artifactId>
   <packaging>jar</packaging>
 
-  <name>ircbot</name>
+  <name>brewtab-ircbot</name>
   <url>http://www.github.com/c2nes/ircbot</url>
 
   <build>
