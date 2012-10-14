@@ -1,14 +1,21 @@
 package org.transtruct.cmthunes.ircbot.applets;
 
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
-import org.htmlparser.*;
-import org.htmlparser.lexer.*;
-import org.htmlparser.util.*;
-import org.transtruct.cmthunes.util.*;
+import org.htmlparser.Node;
+import org.htmlparser.Tag;
+import org.htmlparser.Text;
+import org.htmlparser.lexer.Lexer;
+import org.htmlparser.util.ParserException;
+import org.htmlparser.util.Translate;
 
-import org.transtruct.cmthunes.irc.*;
+import org.transtruct.cmthunes.irc.IRCChannel;
+import org.transtruct.cmthunes.irc.IRCUser;
+import org.transtruct.cmthunes.util.FixedBlockingBuffer;
+import org.transtruct.cmthunes.util.Flag;
 
 public class TextsFromLastNightApplet implements BotApplet {
     private URL url;
@@ -20,7 +27,7 @@ public class TextsFromLastNightApplet implements BotApplet {
     private class GetTexts implements Runnable {
         @Override
         public void run() {
-            while(true) {
+            while (true) {
                 /* Wait for error flag to be cleared */
                 TextsFromLastNightApplet.this.error.waitUninterruptiblyFor(false);
                 TextsFromLastNightApplet.this.populateTexts();
@@ -31,7 +38,7 @@ public class TextsFromLastNightApplet implements BotApplet {
     public TextsFromLastNightApplet(String urlString) {
         try {
             this.url = new URL(urlString);
-        } catch(MalformedURLException e) {
+        } catch (MalformedURLException e) {
             e.printStackTrace();
         }
 
@@ -55,12 +62,12 @@ public class TextsFromLastNightApplet implements BotApplet {
         try {
             connection = (HttpURLConnection) this.url.openConnection();
             lexer = new Lexer(connection);
-        } catch(IOException e) {
+        } catch (IOException e) {
             this.errorMessage = "Could not establish a connection to textsfromlastnight.com";
             this.error.set();
             return;
 
-        } catch(ParserException e) {
+        } catch (ParserException e) {
             this.errorMessage = "Parser error";
             this.error.set();
             return;
@@ -69,21 +76,21 @@ public class TextsFromLastNightApplet implements BotApplet {
 
         Node node = null;
 
-        while(true) {
+        while (true) {
             try {
                 node = lexer.nextNode();
-                if(node == null) {
+                if (node == null) {
                     break;
                 }
 
-                if(node instanceof Tag) {
+                if (node instanceof Tag) {
                     Tag tag = (Tag) node;
                     String tagReadonly = tag.getAttribute("readonly");
                     String tagName = tag.getRawTagName();
 
-                    if(tagName.equals("textarea") && tagReadonly != null && tagReadonly.equals("readonly")) {
+                    if (tagName.equals("textarea") && tagReadonly != null && tagReadonly.equals("readonly")) {
                         node = lexer.nextNode();
-                        if(node instanceof Text) {
+                        if (node instanceof Text) {
                             String text = ((Text) node).getText();
                             text = Translate.decode(text);
                             this.texts.add(text);
@@ -91,7 +98,7 @@ public class TextsFromLastNightApplet implements BotApplet {
                     }
                 }
 
-            } catch(ParserException e) {
+            } catch (ParserException e) {
                 this.errorMessage = "Parser error";
                 this.error.set();
                 return;
@@ -100,17 +107,18 @@ public class TextsFromLastNightApplet implements BotApplet {
     }
 
     public String getText() {
-        if(this.error.isSet()) {
+        if (this.error.isSet()) {
             String msg = this.errorMessage;
             this.error.clear();
             return msg;
-        } else if(this.textFetcher.isAlive()) {
+        } else if (this.textFetcher.isAlive()) {
             return this.texts.get();
         } else {
             return "Fetching thread died";
         }
     }
 
+    @Override
     public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
         String text = this.getText();
         String[] parts = BotAppletUtil.blockFormat(text, 300, 10);

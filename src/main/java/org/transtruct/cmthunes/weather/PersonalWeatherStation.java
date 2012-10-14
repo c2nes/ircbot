@@ -12,12 +12,12 @@ public class PersonalWeatherStation extends Location {
 
     public PersonalWeatherStation() {
         super();
-        
+
         this.id = "";
         this.neighborhood = "";
         this.setDistance(0);
     }
-    
+
     public void setId(String id) {
         this.id = id;
     }
@@ -41,7 +41,7 @@ public class PersonalWeatherStation extends Location {
     public int getDistance() {
         return distance;
     }
-    
+
     @Override
     public URL getQueryURL() {
         String baseURL = "http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=";

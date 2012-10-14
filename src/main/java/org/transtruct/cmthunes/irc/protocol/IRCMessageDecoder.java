@@ -1,9 +1,11 @@
 package org.transtruct.cmthunes.irc.protocol;
 
-import org.transtruct.cmthunes.irc.messages.*;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.handler.codec.oneone.OneToOneDecoder;
 
-import org.jboss.netty.channel.*;
-import org.jboss.netty.handler.codec.oneone.*;
+import org.transtruct.cmthunes.irc.messages.IRCInvalidMessageException;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
 
 /**
  * Decode a String into an IRCMessage object. The String should be a newline
@@ -19,7 +21,7 @@ public class IRCMessageDecoder extends OneToOneDecoder {
         String message = (String) msg;
         try {
             return IRCMessage.fromString(message);
-        } catch(IRCInvalidMessageException except) {
+        } catch (IRCInvalidMessageException except) {
             System.err.println("Received unknown/invalid message, " + except.getMessage());
             return null;
         }

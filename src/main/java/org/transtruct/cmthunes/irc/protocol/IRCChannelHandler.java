@@ -1,10 +1,17 @@
 package org.transtruct.cmthunes.irc.protocol;
 
-import org.transtruct.cmthunes.irc.*;
-import org.transtruct.cmthunes.irc.messages.*;
-import org.transtruct.cmthunes.util.*;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelStateEvent;
+import org.jboss.netty.channel.ExceptionEvent;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelHandler;
 
-import org.jboss.netty.channel.*;
+import org.transtruct.cmthunes.irc.IRCConnectionManager;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
+import org.transtruct.cmthunes.util.Flag;
 
 /**
  * An IRCChannelHandler interfaces a high-level IRCConnectionManager to the
@@ -80,9 +87,9 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
      *             if the connection is not connected
      */
     public void closeChannel() throws IRCNotConnectedException {
-        synchronized(this.connectionClosing) {
+        synchronized (this.connectionClosing) {
             /* Connection already has started being closed */
-            if(this.connectionClosing.isSet()) {
+            if (this.connectionClosing.isSet()) {
                 return;
             }
 
@@ -97,7 +104,7 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
                         IRCChannelHandler.this.connectionClosed.set();
                     }
                 });
-            } catch(NullPointerException e) {
+            } catch (NullPointerException e) {
                 throw new IRCNotConnectedException("Not connected");
             }
         }
@@ -119,7 +126,7 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
     public ChannelFuture sendMessage(IRCMessage message) throws IRCNotConnectedException {
         try {
             return this.channel.write(message);
-        } catch(NullPointerException e) {
+        } catch (NullPointerException e) {
             throw new IRCNotConnectedException("Not yet connected");
         }
     }
@@ -131,7 +138,7 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
     public ChannelFuture sendMessages(IRCMessage... messages) throws IRCNotConnectedException {
         try {
             return this.channel.write(messages);
-        } catch(NullPointerException e) {
+        } catch (NullPointerException e) {
             throw new IRCNotConnectedException("Not yet connected");
         }
     }

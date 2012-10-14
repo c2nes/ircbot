@@ -1,17 +1,23 @@
 package org.transtruct.cmthunes.irc;
 
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import org.transtruct.cmthunes.irc.messages.*;
-import org.transtruct.cmthunes.irc.messages.filter.*;
-import org.transtruct.cmthunes.irc.protocol.*;
-import org.transtruct.cmthunes.util.*;
+import org.jboss.netty.bootstrap.ClientBootstrap;
+import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 
-import org.jboss.netty.bootstrap.*;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.channel.socket.nio.*;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
+import org.transtruct.cmthunes.irc.messages.IRCMessageType;
+import org.transtruct.cmthunes.irc.messages.filter.IRCMessageFilter;
+import org.transtruct.cmthunes.irc.protocol.IRCChannelHandler;
+import org.transtruct.cmthunes.irc.protocol.IRCChannelPipelineFactory;
+import org.transtruct.cmthunes.util.Flag;
 
 public class IRCClient implements IRCConnectionManager {
     /* Netty objects */
@@ -168,7 +174,7 @@ public class IRCClient implements IRCConnectionManager {
 
         /* Wait for underly socket connection to be made */
         future.awaitUninterruptibly();
-        if(!future.isSuccess()) {
+        if (!future.isSuccess()) {
             /* Could not connection to remote host */
             return false;
         }
@@ -211,7 +217,7 @@ public class IRCClient implements IRCConnectionManager {
         IRCChannel channel = new IRCChannel(this, channelName);
 
         /* Attempt to join */
-        if(channel.doJoin()) {
+        if (channel.doJoin()) {
             return channel;
         }
 
@@ -224,13 +230,13 @@ public class IRCClient implements IRCConnectionManager {
         this.channelHandler = connection;
 
         IRCMessage nickMessage = new IRCMessage(IRCMessageType.NICK, this.nick);
-        IRCMessage userMessage = new IRCMessage(IRCMessageType.USER, this.username, this.hostname,
-                this.servername, this.realname);
+        IRCMessage userMessage = new IRCMessage(IRCMessageType.USER, this.username, this.hostname, this.servername,
+                this.realname);
 
-        if(this.pass != null) {
+        if (this.pass != null) {
             /* Send a PASS message first */
             IRCMessage passMessage = null;
-            if(this.pass != null) {
+            if (this.pass != null) {
                 passMessage = new IRCMessage(IRCMessageType.PASS, this.pass);
             }
 
@@ -250,7 +256,7 @@ public class IRCClient implements IRCConnectionManager {
      *            The handler to call with matching message
      */
     public void addHandler(IRCMessageFilter filter, IRCMessageHandler handler) {
-        synchronized(this.handlers) {
+        synchronized (this.handlers) {
             this.handlers.put(filter, handler);
             this.handlersKeys.add(filter);
         }
@@ -264,8 +270,8 @@ public class IRCClient implements IRCConnectionManager {
      * @return true if successful, false otherwise
      */
     public boolean removeHandler(IRCMessageFilter filter) {
-        synchronized(this.handlers) {
-            if(this.handlers.containsKey(filter)) {
+        synchronized (this.handlers) {
+            if (this.handlers.containsKey(filter)) {
                 this.handlers.remove(filter);
                 this.handlersKeys.remove(filter);
                 return true;
@@ -291,7 +297,7 @@ public class IRCClient implements IRCConnectionManager {
          * pool
          */
         System.out.println("IRCClient.onClose");
-        synchronized(this.handlers) {
+        synchronized (this.handlers) {
             this.threadPool.shutdown();
         }
     }
@@ -304,7 +310,7 @@ public class IRCClient implements IRCConnectionManager {
 
     @Override
     public void receiveMessage(IRCChannelHandler connection, IRCMessage message) {
-        switch(message.getType()) {
+        switch (message.getType()) {
 
         /*
          * At least one of these should be received once a good connection is
@@ -316,8 +322,8 @@ public class IRCClient implements IRCConnectionManager {
         case RPL_LUSERCLIENT:
         case RPL_LUSEROP:
         case RPL_LUSERUNKNOWN:
-            synchronized(this.connected) {
-                if(this.connected.isSet() == false) {
+            synchronized (this.connected) {
+                if (this.connected.isSet() == false) {
                     this.connected.set();
                     this.connectedSuccessfully = true;
                 }
@@ -326,8 +332,8 @@ public class IRCClient implements IRCConnectionManager {
 
         /* Error while connecting */
         case ERR_NICKNAMEINUSE:
-            synchronized(this.connected) {
-                if(this.connected.isSet() == false) {
+            synchronized (this.connected) {
+                if (this.connected.isSet() == false) {
                     this.connected.set();
                     this.connectedSuccessfully = false;
                 }
@@ -343,13 +349,13 @@ public class IRCClient implements IRCConnectionManager {
             break;
         }
 
-        synchronized(this.handlers) {
-            if(this.threadPool.isShutdown()) {
+        synchronized (this.handlers) {
+            if (this.threadPool.isShutdown()) {
                 return;
             }
 
-            for(IRCMessageFilter filter : this.handlersKeys) {
-                if(filter.check(message)) {
+            for (IRCMessageFilter filter : this.handlersKeys) {
+                if (filter.check(message)) {
                     IRCMessageHandler handler = this.handlers.get(filter);
                     MessageHandlerRunnable runnableHandler = new MessageHandlerRunnable(handler, message);
                     this.threadPool.submit(runnableHandler);

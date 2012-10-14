@@ -1,8 +1,9 @@
 package org.transtruct.cmthunes.ircbot.applets;
 
-import java.util.*;
+import java.util.Random;
 
-import org.transtruct.cmthunes.irc.*;
+import org.transtruct.cmthunes.irc.IRCChannel;
+import org.transtruct.cmthunes.irc.IRCUser;
 
 public class EightBallApplet implements BotApplet {
     private Random random;
@@ -11,14 +12,13 @@ public class EightBallApplet implements BotApplet {
         this.random = new Random();
     }
 
+    @Override
     public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
-        final String[] answers = {"It is certain", "It is decidedly so", "Without a doubt",
-                                  "Yes \u2013 definitely", "You may rely on it", "As I see it, yes",
-                                  "Most likely", "Outlook good", "Signs point to yes", "Yes",
-                                  "Reply hazy, try again", "Ask again later", "Better not tell you now",
-                                  "Cannot predict now", "Concentrate and ask again", 
-                                  "Don't count on it", "My reply is no", "My sources say no", 
-                                  "Outlook not so good","Very doubtful"};
+        final String[] answers = { "It is certain", "It is decidedly so", "Without a doubt", "Yes \u2013 definitely",
+                "You may rely on it", "As I see it, yes", "Most likely", "Outlook good", "Signs point to yes", "Yes",
+                "Reply hazy, try again", "Ask again later", "Better not tell you now", "Cannot predict now",
+                "Concentrate and ask again", "Don't count on it", "My reply is no", "My sources say no",
+                "Outlook not so good", "Very doubtful" };
 
         channel.write(answers[this.random.nextInt(answers.length)]);
     }

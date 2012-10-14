@@ -1,6 +1,6 @@
 package org.transtruct.cmthunes.irc.messages.filter;
 
-import org.transtruct.cmthunes.irc.messages.*;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
 
 /**
  * A filter that matches if all of its constituent parts do. That is, it acts
@@ -25,8 +25,8 @@ public class IRCMessageAndFilter implements IRCMessageFilter {
 
     @Override
     public boolean check(IRCMessage message) {
-        for(IRCMessageFilter filter : filters) {
-            if(filter.check(message) == false) {
+        for (IRCMessageFilter filter : filters) {
+            if (filter.check(message) == false) {
                 return false;
             }
         }

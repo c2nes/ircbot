@@ -1,8 +1,8 @@
 package org.transtruct.cmthunes.irc.protocol;
 
-import org.transtruct.cmthunes.irc.messages.*;
+import org.jboss.netty.channel.ChannelFuture;
 
-import org.jboss.netty.channel.*;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
 
 /**
  * Implementing this interface allows an object to act as a pipe for sending IRC

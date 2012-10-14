@@ -1,21 +1,23 @@
 package org.transtruct.cmthunes.ircbot.applets;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.IOException;
+import java.net.URLEncoder;
 
-import org.jsoup.*;
-import org.jsoup.nodes.*;
-import org.jsoup.select.*;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
-import org.transtruct.cmthunes.irc.*;
+import org.transtruct.cmthunes.irc.IRCChannel;
+import org.transtruct.cmthunes.irc.IRCUser;
 
 public class TumblrApplet implements BotApplet {
+    @Override
     public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
         Document doc;
         String url;
 
-        if(unparsed.trim().length() == 0) {
+        if (unparsed.trim().length() == 0) {
             channel.write("Missing blog name");
             return;
         }
@@ -40,6 +42,6 @@ public class TumblrApplet implements BotApplet {
         Element title = div.getElementsByTag("a").first();
         channel.write(title.text());
         Element content = div.getElementsByTag("pre").first();
-        channel.writeMultiple(content.text().replaceAll("\t","").split("\n"));
-     }
+        channel.writeMultiple(content.text().replaceAll("\t", "").split("\n"));
+    }
 }

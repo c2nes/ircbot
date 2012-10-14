@@ -1,6 +1,6 @@
 package org.transtruct.cmthunes.util;
 
-import java.util.*;
+import java.util.LinkedList;
 
 /**
  * A simple fixed capacity FIFO buffer. Add calls will block until space is
@@ -47,17 +47,17 @@ public class FixedBlockingBuffer<T> {
      *            The element to add to the buffer
      */
     public void add(T e) {
-        synchronized(this.full) {
-            while(this.full.isSet()) {
+        synchronized (this.full) {
+            while (this.full.isSet()) {
                 this.full.waitUninterruptiblyFor(false);
             }
 
             this.elements.add(e);
-            if(this.empty.isSet()) {
+            if (this.empty.isSet()) {
                 this.empty.clear();
             }
 
-            if(this.elements.size() >= this.capacity) {
+            if (this.elements.size() >= this.capacity) {
                 this.full.set();
             }
         }
@@ -71,17 +71,17 @@ public class FixedBlockingBuffer<T> {
      */
     public T get() {
         T element;
-        synchronized(this.empty) {
-            while(this.empty.isSet()) {
+        synchronized (this.empty) {
+            while (this.empty.isSet()) {
                 this.empty.waitUninterruptiblyFor(false);
             }
 
             element = this.elements.remove();
-            if(this.full.isSet()) {
+            if (this.full.isSet()) {
                 this.full.clear();
             }
 
-            if(this.elements.size() == 0) {
+            if (this.elements.size() == 0) {
                 this.empty.set();
             }
         }

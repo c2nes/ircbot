@@ -1,4 +1,3 @@
-
 package org.transtruct.cmthunes.irclog;
 
 import java.util.Date;

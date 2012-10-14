@@ -54,7 +54,7 @@ public class Flag {
      *             if the current thread is interrupted while waiting
      */
     public synchronized void waitFor(boolean value) throws InterruptedException {
-        while(this.flag != value) {
+        while (this.flag != value) {
             this.wait();
         }
     }
@@ -67,11 +67,11 @@ public class Flag {
      *            Value to wait for the internal flag to equal
      */
     public void waitUninterruptiblyFor(boolean value) {
-        while(true) {
+        while (true) {
             try {
                 this.waitFor(value);
                 break;
-            } catch(InterruptedException e) {
+            } catch (InterruptedException e) {
                 // Ignore and try again
             }
         }

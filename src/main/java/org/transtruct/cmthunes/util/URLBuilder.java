@@ -1,8 +1,11 @@
 package org.transtruct.cmthunes.util;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.util.HashMap;
 
 public class URLBuilder {
     private String protocol;
@@ -12,7 +15,7 @@ public class URLBuilder {
     private String path;
     private String query;
     private String ref;
-    private HashMap<String,String> queryItems;
+    private HashMap<String, String> queryItems;
 
     public URLBuilder(URL url) {
         /* Extract URL parts */
@@ -26,7 +29,7 @@ public class URLBuilder {
 
         this.queryItems = new HashMap<String, String>();
 
-        if(this.query != null && !this.query.equals("")) {
+        if (this.query != null && !this.query.equals("")) {
             this.extractQueryItems(this.query);
         }
     }
@@ -38,37 +41,37 @@ public class URLBuilder {
     private String encode(String s) {
         try {
             return URLEncoder.encode(s, "UTF8");
-        } catch(UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
             throw new RuntimeException("Runtime does not support UTF8 encoding");
         }
     }
-    
+
     private String decode(String s) {
         try {
             return URLDecoder.decode(s, "UTF8");
-        } catch(UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
             throw new RuntimeException("Runtime does not support UTF8 encoding");
         }
     }
-    
+
     public String getQueryParameter(String key) {
         return this.queryItems.get(key);
     }
-    
+
     private void extractQueryItems(String query) {
         String[] items = query.split("&");
 
         this.queryItems.clear();
-        
-        for(String item : items) {
+
+        for (String item : items) {
             String[] split = item.split("=", 2);
-            
-            if(split.length == 2) {
+
+            if (split.length == 2) {
                 String key = this.decode(split[0]);
                 String value = this.decode(split[1]);
-                
+
                 this.queryItems.put(key, value);
             }
         }
@@ -78,45 +81,46 @@ public class URLBuilder {
         this.queryItems.put(key, value);
     }
 
+    @Override
     public String toString() {
         StringBuilder buffer = new StringBuilder();
 
         buffer.append(this.protocol);
         buffer.append("://");
 
-        if(this.userInfo != null && !this.userInfo.equals("")) {
+        if (this.userInfo != null && !this.userInfo.equals("")) {
             buffer.append(this.userInfo);
             buffer.append("@");
         }
 
         buffer.append(this.host);
-        
-        if(this.port != -1) {
+
+        if (this.port != -1) {
             buffer.append(":");
             buffer.append(this.port);
         }
 
         buffer.append(this.path);
 
-        if(this.queryItems.size() > 0) {
+        if (this.queryItems.size() > 0) {
             int i = 0;
 
             buffer.append("?");
 
-            for(String key : this.queryItems.keySet()) {
+            for (String key : this.queryItems.keySet()) {
                 String value = this.queryItems.get(key);
 
                 buffer.append(this.encode(key));
                 buffer.append("=");
                 buffer.append(this.encode(value));
 
-                if(++i < this.queryItems.size()) {
+                if (++i < this.queryItems.size()) {
                     buffer.append("&");
                 }
             }
         }
 
-        if(this.ref != null && !this.ref.equals("")) {
+        if (this.ref != null && !this.ref.equals("")) {
             buffer.append("#");
             buffer.append(this.ref);
         }

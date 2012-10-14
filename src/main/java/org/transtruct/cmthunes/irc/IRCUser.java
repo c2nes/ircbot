@@ -68,14 +68,14 @@ public class IRCUser {
      * @return a new IRCUser object or null if the prefix could not be parsed
      */
     public static IRCUser fromString(String prefix) {
-        if(prefix == null) {
+        if (prefix == null) {
             return null;
         }
 
         int endNick = prefix.indexOf('!');
         int endUser = prefix.indexOf('@');
 
-        if(endNick == -1 || endUser == -1 || endUser < endNick) {
+        if (endNick == -1 || endUser == -1 || endUser < endNick) {
             return null;
         }
 

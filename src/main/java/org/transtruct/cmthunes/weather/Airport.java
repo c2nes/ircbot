@@ -1,7 +1,9 @@
 package org.transtruct.cmthunes.weather;
 
 import java.io.UnsupportedEncodingException;
-import java.net.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
 
 public class Airport extends Location {
     private String icao;
@@ -10,7 +12,7 @@ public class Airport extends Location {
         super();
         this.icao = "";
     }
-    
+
     public void setIcao(String icao) {
         this.icao = icao;
     }

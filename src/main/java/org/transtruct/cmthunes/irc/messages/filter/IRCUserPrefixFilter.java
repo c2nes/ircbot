@@ -1,6 +1,6 @@
 package org.transtruct.cmthunes.irc.messages.filter;
 
-import org.transtruct.cmthunes.irc.*;
+import org.transtruct.cmthunes.irc.IRCUser;
 
 /**
  * Filter for IRCMessage prefixes which specify a user/host rather than a
@@ -60,17 +60,17 @@ public class IRCUserPrefixFilter implements IRCPrefixFilter {
     @Override
     public boolean check(String prefix) {
         IRCUser user = IRCUser.fromString(prefix);
-        if(user == null) {
+        if (user == null) {
             return false;
         }
 
-        if(this.nick != null && user.getNick().equals(this.nick) == false) {
+        if (this.nick != null && user.getNick().equals(this.nick) == false) {
             return false;
         }
-        if(this.user != null && user.getUser().equals(this.user) == false) {
+        if (this.user != null && user.getUser().equals(this.user) == false) {
             return false;
         }
-        if(this.host != null && user.getHost().equals(this.host) == false) {
+        if (this.host != null && user.getHost().equals(this.host) == false) {
             return false;
         }
 

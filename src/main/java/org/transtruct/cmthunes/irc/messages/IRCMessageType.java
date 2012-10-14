@@ -1,6 +1,6 @@
 package org.transtruct.cmthunes.irc.messages;
 
-import java.util.*;
+import java.util.HashMap;
 
 /**
  * Enumeration of different IRC message types
@@ -170,7 +170,7 @@ public enum IRCMessageType {
     /** Type lookup table */
     private static HashMap<String, IRCMessageType> typeLookup = new HashMap<String, IRCMessageType>();
     static {
-        for(IRCMessageType t : values()) {
+        for (IRCMessageType t : values()) {
             IRCMessageType.typeLookup.put(t.toString(), t);
         }
     }

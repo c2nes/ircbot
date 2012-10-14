@@ -1,13 +1,20 @@
 package org.transtruct.cmthunes.ircbot.applets;
 
-import java.net.*;
+import java.net.MalformedURLException;
 
-import javax.xml.parsers.*;
-import javax.xml.xpath.*;
-import org.w3c.dom.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 
-import org.transtruct.cmthunes.irc.*;
-import org.transtruct.cmthunes.util.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+
+import org.transtruct.cmthunes.irc.IRCChannel;
+import org.transtruct.cmthunes.irc.IRCUser;
+import org.transtruct.cmthunes.util.URLBuilder;
 
 public class GoogleSuggestsApplet implements BotApplet {
     private DocumentBuilder documentBuilder;
@@ -17,7 +24,7 @@ public class GoogleSuggestsApplet implements BotApplet {
     public GoogleSuggestsApplet() {
         try {
             this.documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-        } catch(ParserConfigurationException e) {
+        } catch (ParserConfigurationException e) {
             e.printStackTrace();
         }
 
@@ -25,39 +32,41 @@ public class GoogleSuggestsApplet implements BotApplet {
         this.counter = 0;
     }
 
+    @Override
     public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
         URLBuilder url;
         String query = unparsed;
 
-        if(query.trim().length() == 0) {
+        if (query.trim().length() == 0) {
             channel.write("Missing query");
             return;
         }
-        
+
         try {
             url = new URLBuilder("http://google.com/complete/search");
-        } catch(MalformedURLException e) {
+        } catch (MalformedURLException e) {
             e.printStackTrace();
             return;
         }
 
         url.setParameter("output", "toolbar");
         url.setParameter("q", query);
-            
+
         try {
             Document doc = this.documentBuilder.parse(url.toString());
             NodeList suggestions = (NodeList) this.xpath.evaluate("//CompleteSuggestion", doc, XPathConstants.NODESET);
 
-            if(suggestions.getLength() > 0) {
+            if (suggestions.getLength() > 0) {
                 int i = this.counter % suggestions.getLength();
-                String suggestion = this.xpath.evaluate(String.format("//CompleteSuggestion[%d]/suggestion/@data", i + 1), doc);
-                
+                String suggestion = this.xpath.evaluate(
+                        String.format("//CompleteSuggestion[%d]/suggestion/@data", i + 1), doc);
+
                 channel.write(suggestion);
                 this.counter++;
             } else {
                 channel.write("No suggestions found");
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return;
         }

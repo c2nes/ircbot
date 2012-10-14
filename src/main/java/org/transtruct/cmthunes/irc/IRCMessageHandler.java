@@ -1,6 +1,6 @@
 package org.transtruct.cmthunes.irc;
 
-import org.transtruct.cmthunes.irc.messages.*;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
 
 /**
  * Implementing class are capable of being registered with other objects to

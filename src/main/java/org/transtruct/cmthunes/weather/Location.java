@@ -14,7 +14,7 @@ public abstract class Location {
         this.state = null;
         this.country = "";
     }
-    
+
     public void setCity(String city) {
         this.city = city;
     }

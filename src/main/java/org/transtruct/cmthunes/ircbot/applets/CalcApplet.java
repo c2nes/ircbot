@@ -1,13 +1,16 @@
 package org.transtruct.cmthunes.ircbot.applets;
 
-import java.util.*;
-import java.util.regex.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.regex.Pattern;
 
-import org.transtruct.cmthunes.irc.*;
+import org.transtruct.cmthunes.irc.IRCChannel;
+import org.transtruct.cmthunes.irc.IRCUser;
 
 public class CalcApplet implements BotApplet {
     private enum OperatorType {
-        BINARY, UNARY;
+        BINARY,
+        UNARY;
     };
 
     private static class Operator {
@@ -86,25 +89,25 @@ public class CalcApplet implements BotApplet {
         int longestMatch = 0; /* Token length */
         int tempLength = 1;
 
-        while(ti < expression.length()) {
+        while (ti < expression.length()) {
             String token = expression.substring(ti, ti + tempLength);
             boolean isNum = number.matcher(token).matches();
 
-            if(token.matches("\\s")) {
+            if (token.matches("\\s")) {
                 /* Remove whitespace */
                 ti++;
-            } else if(isNum || allSpecialTokens.contains(token)) {
+            } else if (isNum || allSpecialTokens.contains(token)) {
                 longestMatch = tempLength;
                 tempLength++;
-                if(ti + tempLength > expression.length()) {
+                if (ti + tempLength > expression.length()) {
                     tokens.add(token);
                     break;
                 }
             } else {
                 /* Increase length to attempt match */
                 tempLength++;
-                if(tempLength - longestMatch > 5 || ti + tempLength > expression.length()) {
-                    if(longestMatch > 0) {
+                if (tempLength - longestMatch > 5 || ti + tempLength > expression.length()) {
+                    if (longestMatch > 0) {
                         tokens.add(expression.substring(ti, ti + longestMatch));
 
                         ti += longestMatch;
@@ -123,47 +126,47 @@ public class CalcApplet implements BotApplet {
     private static Operator getOperator(ArrayList<String> tokens, int i) {
         String token = tokens.get(i);
 
-        if(token.equals("+")) {
+        if (token.equals("+")) {
             return plus;
-        } else if(token.equals("*")) {
+        } else if (token.equals("*")) {
             return times;
-        } else if(token.equals("/")) {
+        } else if (token.equals("/")) {
             return div;
-        } else if(token.equals("%")) {
+        } else if (token.equals("%")) {
             return mod;
-        } else if(token.equals("**")) {
+        } else if (token.equals("**")) {
             return pow;
-        } else if(token.equals("&")) {
+        } else if (token.equals("&")) {
             return and;
-        } else if(token.equals("|")) {
+        } else if (token.equals("|")) {
             return or;
-        } else if(token.equals("^")) {
+        } else if (token.equals("^")) {
             return xor;
-        } else if(token.equals("~")) {
+        } else if (token.equals("~")) {
             return bitnot;
-        } else if(token.equals("cos")) {
+        } else if (token.equals("cos")) {
             return cos;
-        } else if(token.equals("sin")) {
+        } else if (token.equals("sin")) {
             return sin;
-        } else if(token.equals("tan")) {
+        } else if (token.equals("tan")) {
             return tan;
-        } else if(token.equals("sqrt")) {
+        } else if (token.equals("sqrt")) {
             return sqrt;
-        } else if(token.equals("log")) {
+        } else if (token.equals("log")) {
             return log;
-        } else if(token.equals("log2")) {
+        } else if (token.equals("log2")) {
             return log2;
-        } else if(token.equals("log10")) {
+        } else if (token.equals("log10")) {
             return log10;
-        } else if(token.equals("-")) {
-            if(i == 0) {
+        } else if (token.equals("-")) {
+            if (i == 0) {
                 return neg;
             }
 
             String previous = tokens.get(i - 1);
-            if(previous.equals(closeGroup)) {
+            if (previous.equals(closeGroup)) {
                 return minus;
-            } else if(allSpecialTokens.contains(previous)) {
+            } else if (allSpecialTokens.contains(previous)) {
                 return neg;
             } else {
                 return minus;
@@ -174,41 +177,41 @@ public class CalcApplet implements BotApplet {
     }
 
     private static double doOperation(Operator op, double... operands) throws Exception {
-        if(op == plus) {
+        if (op == plus) {
             return operands[0] + operands[1];
-        } else if(op == minus) {
+        } else if (op == minus) {
             return operands[0] - operands[1];
-        } else if(op == times) {
+        } else if (op == times) {
             return operands[0] * operands[1];
-        } else if(op == div) {
+        } else if (op == div) {
             return operands[0] / operands[1];
-        } else if(op == mod) {
+        } else if (op == mod) {
             return ((int) operands[0]) % ((int) operands[1]);
-        } else if(op == pow) {
+        } else if (op == pow) {
             return Math.pow(operands[0], operands[1]);
-        } else if(op == and) {
+        } else if (op == and) {
             return ((int) operands[0]) & ((int) operands[1]);
-        } else if(op == or) {
+        } else if (op == or) {
             return ((int) operands[0]) | ((int) operands[1]);
-        } else if(op == xor) {
+        } else if (op == xor) {
             return ((int) operands[0]) ^ ((int) operands[1]);
-        } else if(op == bitnot) {
+        } else if (op == bitnot) {
             return ~((int) operands[0]);
-        } else if(op == neg) {
+        } else if (op == neg) {
             return -operands[0];
-        } else if(op == sin) {
+        } else if (op == sin) {
             return Math.sin(operands[0]);
-        } else if(op == cos) {
+        } else if (op == cos) {
             return Math.cos(operands[0]);
-        } else if(op == tan) {
+        } else if (op == tan) {
             return Math.tan(operands[0]);
-        } else if(op == sqrt) {
+        } else if (op == sqrt) {
             return Math.sqrt(operands[0]);
-        } else if(op == log) {
+        } else if (op == log) {
             return Math.log(operands[0]);
-        } else if(op == log2) {
+        } else if (op == log2) {
             return Math.log(operands[0]) / Math.log(2);
-        } else if(op == log10) {
+        } else if (op == log10) {
             return Math.log10(operands[0]);
         }
 
@@ -219,17 +222,17 @@ public class CalcApplet implements BotApplet {
         int depth = 1;
 
         i++;
-        while(depth != 0 && i < tokens.size()) {
-            if(tokens.get(i).equals(openGroup)) {
+        while (depth != 0 && i < tokens.size()) {
+            if (tokens.get(i).equals(openGroup)) {
                 depth++;
-            } else if(tokens.get(i).equals(closeGroup)) {
+            } else if (tokens.get(i).equals(closeGroup)) {
                 depth--;
             }
 
             i++;
         }
 
-        if(depth == 0) {
+        if (depth == 0) {
             return i - 1;
         }
 
@@ -244,22 +247,22 @@ public class CalcApplet implements BotApplet {
         int depth = 0;
 
         /* Trim parentheses from expression */
-        while(tokens.get(start).equals(openGroup) && matchGroup(tokens, start) == end) {
+        while (tokens.get(start).equals(openGroup) && matchGroup(tokens, start) == end) {
             start++;
             end--;
         }
 
         /* Singleton (should just be a value) */
-        if(end - start == 0) {
+        if (end - start == 0) {
             token = tokens.get(start);
-            if(number.matcher(token).matches()) {
-                if(token.equals("PI")) {
+            if (number.matcher(token).matches()) {
+                if (token.equals("PI")) {
                     return Math.PI;
-                } else if(token.equals("E")) {
+                } else if (token.equals("E")) {
                     return Math.E;
-                } else if(token.startsWith("0b")) {
+                } else if (token.startsWith("0b")) {
                     return Integer.valueOf(token.replaceFirst("0b", ""), 2);
-                } else if(token.startsWith("0x")) {
+                } else if (token.startsWith("0x")) {
                     return Integer.valueOf(token.replaceFirst("0x", ""), 16);
                 } else {
                     return Double.valueOf(token);
@@ -274,40 +277,40 @@ public class CalcApplet implements BotApplet {
          * The expression is split at this operator and recurses to find the
          * value of this operators operands.
          */
-        for(int i = start; i <= end; i++) {
+        for (int i = start; i <= end; i++) {
             tempOp = getOperator(tokens, i);
 
-            if(tempOp != null) {
-                if(depth == 0 && (rootOp == null || tempOp.precedence <= rootOp.precedence)) {
+            if (tempOp != null) {
+                if (depth == 0 && (rootOp == null || tempOp.precedence <= rootOp.precedence)) {
                     iRootOp = i;
                     rootOp = tempOp;
                 }
             } else {
                 token = tokens.get(i);
-                if(token.equals(openGroup)) {
+                if (token.equals(openGroup)) {
                     depth++;
-                } else if(token.equals(closeGroup)) {
+                } else if (token.equals(closeGroup)) {
                     depth--;
                 }
 
-                if(depth < 0) {
+                if (depth < 0) {
                     throw new Exception("Mismatched parentheses");
                 }
             }
         }
 
         /* No operator found */
-        if(rootOp == null) {
+        if (rootOp == null) {
             throw new Exception(String.format("Missing operator"));
         }
 
         /* Operator is at the end of the expression */
-        if(iRootOp == end) {
+        if (iRootOp == end) {
             throw new Exception("Operator at end of expression");
         }
 
         /* A binary operator is at the beginning of an expression */
-        if(iRootOp == start && rootOp.type == OperatorType.BINARY) {
+        if (iRootOp == start && rootOp.type == OperatorType.BINARY) {
             throw new Exception("Binary operator at beginning of expression");
         }
 
@@ -315,7 +318,7 @@ public class CalcApplet implements BotApplet {
          * Recurse to evaluate the operators operands, then apply the operation
          * to these operands
          */
-        switch(rootOp.type) {
+        switch (rootOp.type) {
         case UNARY:
             double operand = evaluateSubExpression(tokens, iRootOp + 1, end);
             return doOperation(rootOp, operand);
@@ -335,12 +338,13 @@ public class CalcApplet implements BotApplet {
         return evaluateSubExpression(tokens, 0, tokens.size() - 1);
     }
 
+    @Override
     public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
         String expression = unparsed;
 
         try {
             String outFormat = "float";
-            if(expression.contains("as")) {
+            if (expression.contains("as")) {
                 String[] parts = expression.split("as");
                 expression = parts[0].trim();
                 outFormat = parts[1].trim().toLowerCase();
@@ -349,20 +353,20 @@ public class CalcApplet implements BotApplet {
             double result = CalcApplet.evaluateExpression(expression);
             String sResult = null;
 
-            if(outFormat.equals("float")) {
+            if (outFormat.equals("float")) {
                 sResult = String.format("%.10f", result);
                 sResult = sResult.replaceFirst("0*$", "");
                 sResult = sResult.replaceFirst("\\.$", "");
-            } else if(outFormat.equals("hex")) {
+            } else if (outFormat.equals("hex")) {
                 sResult = "0x" + Integer.toString((int) result, 16);
-            } else if(outFormat.equals("bin")) {
+            } else if (outFormat.equals("bin")) {
                 sResult = "0b" + Integer.toString((int) result, 2);
             } else {
                 sResult = "Invalid conversion specifier";
             }
 
             channel.write(String.format("%s: %s", from.getNick(), sResult));
-        } catch(Exception e) {
+        } catch (Exception e) {
             channel.write(String.format("%s: %s", from.getNick(), e.getMessage()));
         }
     }

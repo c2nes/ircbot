@@ -1,6 +1,6 @@
 package org.transtruct.cmthunes.irc.messages.filter;
 
-import org.transtruct.cmthunes.irc.messages.*;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
 
 /**
  * An IRCMessageFilter is responsible for performing matching operations on

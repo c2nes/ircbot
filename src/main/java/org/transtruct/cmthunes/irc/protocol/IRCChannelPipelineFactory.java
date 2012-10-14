@@ -1,12 +1,18 @@
 package org.transtruct.cmthunes.irc.protocol;
 
-import org.transtruct.cmthunes.irc.*;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.ChannelHandler;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
+import org.jboss.netty.handler.codec.frame.DelimiterBasedFrameDecoder;
+import org.jboss.netty.handler.codec.string.StringDecoder;
+import org.jboss.netty.handler.codec.string.StringEncoder;
+import org.jboss.netty.util.CharsetUtil;
 
-import org.jboss.netty.buffer.*;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.handler.codec.frame.*;
-import org.jboss.netty.handler.codec.string.*;
-import org.jboss.netty.util.*;
+import org.transtruct.cmthunes.irc.IRCConnectionManager;
+import org.transtruct.cmthunes.irc.IRCConnectionManagerFactory;
 
 /**
  * A ChannelPipelineFactory for an IRCConnection. This pipeline works with an
@@ -58,7 +64,7 @@ public class IRCChannelPipelineFactory implements ChannelPipelineFactory {
         ChannelBuffer delimiterBuffer = ChannelBuffers.copiedBuffer(delimiter);
         ChannelHandler frameDecoder = new DelimiterBasedFrameDecoder(1024, delimiterBuffer);
         IRCConnectionManager channelManager = this.connectionManager;
-        if(channelManager == null) {
+        if (channelManager == null) {
             channelManager = this.connectionManagerFactory.getConnectionManager();
         }
 

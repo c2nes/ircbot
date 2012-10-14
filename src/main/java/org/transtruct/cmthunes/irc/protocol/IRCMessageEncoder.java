@@ -1,9 +1,10 @@
 package org.transtruct.cmthunes.irc.protocol;
 
-import org.transtruct.cmthunes.irc.messages.*;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
 
-import org.jboss.netty.channel.*;
-import org.jboss.netty.handler.codec.oneone.*;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
 
 /**
  * Encode an IRCMessage or IRCMessage[] into a String
@@ -13,14 +14,14 @@ import org.jboss.netty.handler.codec.oneone.*;
 public class IRCMessageEncoder extends OneToOneEncoder {
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) {
-        if(msg instanceof IRCMessage) {
+        if (msg instanceof IRCMessage) {
             IRCMessage message = (IRCMessage) msg;
             return message.toString();
-        } else if(msg instanceof IRCMessage[]) {
+        } else if (msg instanceof IRCMessage[]) {
             IRCMessage[] messages = (IRCMessage[]) msg;
             StringBuffer buffer = new StringBuffer();
 
-            for(IRCMessage message : messages) {
+            for (IRCMessage message : messages) {
                 buffer.append(message.toString());
             }
 

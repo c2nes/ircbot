@@ -1,23 +1,22 @@
-
 package org.transtruct.cmthunes.ircbot.applets;
 
-import java.util.*;
+import java.util.ArrayList;
 
 public class BotAppletUtil {
     public static String[] blockFormat(String text, int width, int play) {
         ArrayList<String> messages = new ArrayList<String>();
         String[] lines = text.split("\n");
 
-        for(String line : lines) {
+        for (String line : lines) {
             line = line.trim();
 
             int i = 0;
             int length = 0;
 
-            while(line.length() - i > width) {
+            while (line.length() - i > width) {
                 length = width - play;
-                while(length < width) {
-                    if(line.charAt(i + length) == ' ') {
+                while (length < width) {
+                    if (line.charAt(i + length) == ' ') {
                         break;
                     }
 

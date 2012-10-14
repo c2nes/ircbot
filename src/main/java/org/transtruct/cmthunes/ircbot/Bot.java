@@ -1,13 +1,28 @@
 package org.transtruct.cmthunes.ircbot;
 
-import java.net.*;
-import java.sql.*;
+import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.sql.DriverManager;
 
-import org.transtruct.cmthunes.irc.*;
-import org.transtruct.cmthunes.irc.messages.*;
-import org.transtruct.cmthunes.irc.messages.filter.*;
-import org.transtruct.cmthunes.ircbot.applets.*;
-import org.transtruct.cmthunes.irclog.*;
+import org.transtruct.cmthunes.irc.IRCChannel;
+import org.transtruct.cmthunes.irc.IRCClient;
+import org.transtruct.cmthunes.irc.IRCMessageHandler;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
+import org.transtruct.cmthunes.irc.messages.filter.IRCMessageFilters;
+import org.transtruct.cmthunes.ircbot.applets.BashApplet;
+import org.transtruct.cmthunes.ircbot.applets.CalcApplet;
+import org.transtruct.cmthunes.ircbot.applets.EightBallApplet;
+import org.transtruct.cmthunes.ircbot.applets.GoogleSuggestsApplet;
+import org.transtruct.cmthunes.ircbot.applets.GroupHugApplet;
+import org.transtruct.cmthunes.ircbot.applets.SpellApplet;
+import org.transtruct.cmthunes.ircbot.applets.StatsApplet;
+import org.transtruct.cmthunes.ircbot.applets.TextsFromLastNightApplet;
+import org.transtruct.cmthunes.ircbot.applets.TumblrApplet;
+import org.transtruct.cmthunes.ircbot.applets.UrbanDictionaryApplet;
+import org.transtruct.cmthunes.ircbot.applets.WeatherApplet;
+import org.transtruct.cmthunes.ircbot.applets.WikiApplet;
+import org.transtruct.cmthunes.ircbot.applets.WolframAlphaApplet;
+import org.transtruct.cmthunes.irclog.IRCLogger;
 
 public class Bot {
     public static void main(String[] args) throws Exception {
@@ -15,7 +30,7 @@ public class Bot {
 
         /* Create IRC client */
         IRCClient client = new IRCClient(addr);
-        
+
         /* Create logger */
         Class.forName("org.h2.Driver");
         Connection connection = DriverManager.getConnection("jdbc:h2:brewtab", "sa", "");
@@ -67,9 +82,9 @@ public class Bot {
         botChannelListener.registerApplet("sp", spellApplet);
 
         botChannelListener.registerApplet("8ball", eightBallApplet);
-        
+
         botChannelListener.registerApplet("urban", urbanDictionaryApplet);
-        
+
         botChannelListener.registerApplet("gs", googleSuggestsApplet);
 
         /* Will block until connection process is complete */

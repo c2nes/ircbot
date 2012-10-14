@@ -1,6 +1,7 @@
 package org.transtruct.cmthunes.irc.messages.filter;
 
-import org.transtruct.cmthunes.irc.messages.*;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
+import org.transtruct.cmthunes.irc.messages.IRCMessageType;
 
 /**
  * Filter for IRCMessage objects. Filters messages based on their type, prefix,
@@ -42,24 +43,24 @@ public class IRCMessageSimpleFilter implements IRCMessageFilter {
     @Override
     public boolean check(IRCMessage message) {
         /* Check message type */
-        if(this.type != null && this.type != message.getType()) {
+        if (this.type != null && this.type != message.getType()) {
             return false;
         }
 
         /* Check prefix */
-        if(this.prefixFilter != null && this.prefixFilter.check(message.getPrefix()) == false) {
+        if (this.prefixFilter != null && this.prefixFilter.check(message.getPrefix()) == false) {
             return false;
         }
 
         /* Check arguments */
-        if(this.args != null) {
+        if (this.args != null) {
             String[] msgArgs = message.getArgs();
-            if(this.args.length > msgArgs.length) {
+            if (this.args.length > msgArgs.length) {
                 return false;
             }
 
-            for(int i = 0; i < this.args.length; i++) {
-                if(this.args[i] != null && this.args[i].equals(msgArgs[i]) == false) {
+            for (int i = 0; i < this.args.length; i++) {
+                if (this.args[i] != null && this.args[i].equals(msgArgs[i]) == false) {
                     return false;
                 }
             }

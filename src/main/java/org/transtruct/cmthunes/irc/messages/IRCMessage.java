@@ -1,6 +1,7 @@
 package org.transtruct.cmthunes.irc.messages;
 
-import java.util.*;
+import java.util.EnumMap;
+import java.util.LinkedList;
 
 /**
  * Represents an IRCMessage. A message is a single request or reply sent by
@@ -107,11 +108,11 @@ public class IRCMessage {
          * @return true if valid, false otherwise
          */
         public boolean check(String[] args) {
-            if(this.min != -1 && args.length < this.min) {
+            if (this.min != -1 && args.length < this.min) {
                 return false;
             }
 
-            if(this.max != -1 && args.length > this.max) {
+            if (this.max != -1 && args.length > this.max) {
                 return false;
             }
 
@@ -169,7 +170,7 @@ public class IRCMessage {
         this.type = type;
         this.args = args;
 
-        if(this.validArgs() == false) {
+        if (this.validArgs() == false) {
             throw new IRCInvalidMessageException("Invalid arguments");
         }
     }
@@ -182,7 +183,7 @@ public class IRCMessage {
     private boolean validArgs() {
         ArgumentConstraint constraint = IRCMessage.argumentConstraints.get(this.type);
 
-        if(constraint != null) {
+        if (constraint != null) {
             return constraint.check(this.args);
         }
 
@@ -195,22 +196,23 @@ public class IRCMessage {
      * 
      * @return the message encoded as a String with \r\n included
      */
+    @Override
     public String toString() {
         StringBuffer buffer = new StringBuffer();
 
-        if(this.prefix != null) {
+        if (this.prefix != null) {
             buffer.append(":").append(this.prefix).append(" ");
         }
 
         buffer.append(this.type.toString());
 
-        if(this.args.length > 0) {
-            for(int i = 0; i < this.args.length - 1; i++) {
+        if (this.args.length > 0) {
+            for (int i = 0; i < this.args.length - 1; i++) {
                 buffer.append(" ").append(this.args[i]);
             }
 
             String lastArg = this.args[this.args.length - 1];
-            switch(this.type) {
+            switch (this.type) {
             case PRIVMSG:
             case USER:
             case PART:
@@ -244,7 +246,7 @@ public class IRCMessage {
         messageFrame = messageFrame.trim();
 
         /* Remove prefix */
-        if(messageFrame.startsWith(":")) {
+        if (messageFrame.startsWith(":")) {
             int splitPoint = messageFrame.indexOf(' ');
             prefix = messageFrame.substring(1, splitPoint);
             messageFrame = messageFrame.substring(splitPoint + 1).trim();
@@ -252,7 +254,7 @@ public class IRCMessage {
 
         /* Remove trailing part */
         int trailingPoint = messageFrame.indexOf(':');
-        if(trailingPoint != -1) {
+        if (trailingPoint != -1) {
             trailing = messageFrame.substring(trailingPoint + 1);
             messageFrame = messageFrame.substring(0, trailingPoint).trim();
         }
@@ -260,7 +262,7 @@ public class IRCMessage {
         /* Remove type */
         int endTypePoint = messageFrame.indexOf(' ');
         String typeString;
-        if(endTypePoint == -1) {
+        if (endTypePoint == -1) {
             typeString = messageFrame;
             messageFrame = "";
         } else {
@@ -270,7 +272,7 @@ public class IRCMessage {
 
         /* Attempt a type lookup for the message type */
         IRCMessageType type = IRCMessageType.fromString(typeString);
-        if(type == null) {
+        if (type == null) {
             throw new IRCInvalidMessageException("invalid type: " + typeString);
         }
 
@@ -279,9 +281,9 @@ public class IRCMessage {
          * trailing argument if it exists
          */
         LinkedList<String> argsList = new LinkedList<String>();
-        while(messageFrame.length() > 0) {
+        while (messageFrame.length() > 0) {
             int nextSpace = messageFrame.indexOf(' ');
-            if(nextSpace == -1) {
+            if (nextSpace == -1) {
                 argsList.add(messageFrame);
                 break;
             } else {
@@ -290,7 +292,7 @@ public class IRCMessage {
             }
         }
 
-        if(trailing != null) {
+        if (trailing != null) {
             argsList.add(trailing);
         }
 

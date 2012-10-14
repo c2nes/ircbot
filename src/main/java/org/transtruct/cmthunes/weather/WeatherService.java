@@ -1,14 +1,25 @@
 package org.transtruct.cmthunes.weather;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 
-import javax.xml.parsers.*;
-import javax.xml.xpath.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
-import org.w3c.dom.*;
-import org.xml.sax.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 public class WeatherService {
     private DocumentBuilderFactory domBuilderFactory;
@@ -21,11 +32,11 @@ public class WeatherService {
     private XPathExpression idExpr;
     private XPathExpression neighborhoodExpr;
     private XPathExpression distanceExpr;
-    
+
     public WeatherService() {
         this.domBuilderFactory = DocumentBuilderFactory.newInstance();
         this.xpath = XPathFactory.newInstance().newXPath();
-        
+
         try {
             this.cityExpr = this.xpath.compile("city/text()");
             this.stateExpr = this.xpath.compile("state/text()");
@@ -34,11 +45,11 @@ public class WeatherService {
             this.idExpr = this.xpath.compile("id/text()");
             this.neighborhoodExpr = this.xpath.compile("neighborhood/text()");
             this.distanceExpr = this.xpath.compile("distance_km/text()");
-        } catch(XPathExpressionException e) {
+        } catch (XPathExpressionException e) {
             // -
         }
     }
-    
+
     private String getXPathString(XPathExpression expr, Node node) {
         try {
             return (String) expr.evaluate(node, XPathConstants.STRING);
@@ -47,7 +58,7 @@ public class WeatherService {
             return "";
         }
     }
-    
+
     private Airport buildAirport(Node node) {
         Airport airport = new Airport();
 
@@ -55,7 +66,7 @@ public class WeatherService {
         airport.setState(this.getXPathString(this.stateExpr, node));
         airport.setCountry(this.getXPathString(this.countryExpr, node));
         airport.setIcao(this.getXPathString(this.icaoExpr, node));
-        
+
         return airport;
     }
 
@@ -68,53 +79,54 @@ public class WeatherService {
         pws.setNeighborhood(this.getXPathString(this.neighborhoodExpr, node));
         pws.setId(this.getXPathString(this.idExpr, node));
         pws.setDistance(Integer.valueOf(this.getXPathString(this.distanceExpr, node)));
-        
+
         return pws;
     }
 
     public List<Location> searchLocation(String query) throws WeatherException {
         return searchLocation(query, true, true);
     }
-    
-    public List<Location> searchLocation(String query, boolean includeAirports, boolean includeStations) throws WeatherException {
+
+    public List<Location> searchLocation(String query, boolean includeAirports, boolean includeStations)
+            throws WeatherException {
         String baseURL = "http://api.wunderground.com/auto/wui/geo/GeoLookupXML/index.xml?query=";
         try {
             URL url = new URL(baseURL + URLEncoder.encode(query, "UTF-8"));
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            
+
             DocumentBuilder builder = this.domBuilderFactory.newDocumentBuilder();
             Document document = null;
-            
+
             connection.setReadTimeout(5000);
             document = builder.parse(connection.getInputStream());
 
-            
             ArrayList<Location> locations = new ArrayList<Location>();
-            
+
             /* Add airports */
-            if(includeAirports) {
-                NodeList airports = (NodeList) this.xpath.evaluate("//airport/station", document, XPathConstants.NODESET);
-                for(int i = 0; i < airports.getLength(); i++) {
+            if (includeAirports) {
+                NodeList airports = (NodeList) this.xpath.evaluate("//airport/station", document,
+                        XPathConstants.NODESET);
+                for (int i = 0; i < airports.getLength(); i++) {
                     locations.add(buildAirport(airports.item(i)));
                 }
             }
-            
+
             /* Add personal weather stations */
-            if(includeStations) {
+            if (includeStations) {
                 NodeList pws = (NodeList) this.xpath.evaluate("//pws/station", document, XPathConstants.NODESET);
-                for(int i = 0; i < pws.getLength(); i++) {
+                for (int i = 0; i < pws.getLength(); i++) {
                     locations.add(buildPersonalWeatherStation(pws.item(i)));
                 }
             }
-            
+
             return locations;
-        } catch(SocketTimeoutException e) {
+        } catch (SocketTimeoutException e) {
             throw new WeatherException("Timed out while retrieving location data");
-        } catch(IOException e) {
+        } catch (IOException e) {
             throw new WeatherException("Error retrieving location data");
-        } catch(SAXException e) {
+        } catch (SAXException e) {
             throw new WeatherException("Error parsing response");
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             throw new WeatherException("Unexpected exception. Stack trace dumped");
         }
@@ -124,41 +136,40 @@ public class WeatherService {
         String query = String.format("/current_observation/%s/text()", parameter);
         return (String) this.xpath.evaluate(query, dom, XPathConstants.STRING);
     }
-    
+
     public WeatherCondition getCondition(Location location) throws WeatherException {
         try {
             URL url = location.getQueryURL();
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            
-            
+
             DocumentBuilder builder = this.domBuilderFactory.newDocumentBuilder();
             Document document = null;
-            
+
             connection.setReadTimeout(5000);
             document = builder.parse(connection.getInputStream());
 
             WeatherCondition condition = new WeatherCondition();
-            
+
             String temp_c = this.getObservationParameter(document, "temp_c");
             String cond_s = this.getObservationParameter(document, "weather");
             String wind_dir = this.getObservationParameter(document, "wind_dir");
             String wind_mph = this.getObservationParameter(document, "wind_mph");
-            
+
             condition.setTempC(Double.valueOf(temp_c));
             condition.setConditionString(cond_s.trim());
             condition.setWindDir(wind_dir);
             condition.setWindSpeed(Double.valueOf(wind_mph));
 
             return condition;
-        } catch(SocketTimeoutException e) {
+        } catch (SocketTimeoutException e) {
             throw new WeatherException("Timed out while retrieving condition data");
-        } catch(IOException e) {
+        } catch (IOException e) {
             throw new WeatherException("Error retrieving location data");
-        } catch(SAXException e) {
+        } catch (SAXException e) {
             throw new WeatherException("Error parsing response");
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             throw new WeatherException("Unexpected exception. Stack trace dumped");
-        }            
+        }
     }
 }

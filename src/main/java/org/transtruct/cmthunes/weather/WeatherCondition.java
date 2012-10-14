@@ -5,19 +5,19 @@ public class WeatherCondition {
     private String conditionString;
     private String windDir;
     private double windSpeed;
-    
+
     public void setTempC(double temp_c) {
         this.tempC = temp_c;
     }
-    
+
     public void setTempF(double temp_f) {
         this.tempC = (temp_f - 32) * (5.0 / 9);
     }
-    
+
     public double getTempC() {
         return tempC;
     }
-    
+
     public double getTempF() {
         return tempC * (9.0 / 5) + 32;
     }

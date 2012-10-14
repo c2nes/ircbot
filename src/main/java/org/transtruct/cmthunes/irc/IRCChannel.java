@@ -1,10 +1,14 @@
 package org.transtruct.cmthunes.irc;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
-import org.transtruct.cmthunes.irc.messages.*;
-import org.transtruct.cmthunes.irc.messages.filter.*;
-import org.transtruct.cmthunes.util.*;
+import org.transtruct.cmthunes.irc.messages.IRCMessage;
+import org.transtruct.cmthunes.irc.messages.IRCMessageType;
+import org.transtruct.cmthunes.irc.messages.filter.IRCMessageFilter;
+import org.transtruct.cmthunes.irc.messages.filter.IRCMessageFilters;
+import org.transtruct.cmthunes.irc.messages.filter.IRCMessageOrFilter;
+import org.transtruct.cmthunes.util.Flag;
 
 /**
  * An IRC channel. Represents a connection to an IRC channel.
@@ -34,7 +38,6 @@ public class IRCChannel implements IRCMessageHandler {
      * are returned as an array.
      * 
      * @author Christopher Thunes <cthunes@transtruct.org>
-     * 
      */
     private class NamesRequestHandler implements IRCMessageHandler, IRCMessageFilter {
         private ArrayList<String> names;
@@ -50,16 +53,19 @@ public class IRCChannel implements IRCMessageHandler {
 
         @Override
         public void handleMessage(IRCMessage message) {
-            switch(message.getType()) {
+            switch (message.getType()) {
             case RPL_NAMREPLY:
                 String[] args = message.getArgs();
-                for(String name : args[args.length - 1].split(" ")) {
+                for (String name : args[args.length - 1].split(" ")) {
                     names.add(name.replaceFirst("^[@+]", ""));
                 }
                 break;
 
             case RPL_ENDOFNAMES:
                 this.done.set();
+                break;
+
+            default:
                 break;
             }
         }
@@ -69,17 +75,21 @@ public class IRCChannel implements IRCMessageHandler {
             String channelName = IRCChannel.this.getName();
             String[] args = message.getArgs();
 
-            switch(message.getType()) {
+            switch (message.getType()) {
             case RPL_NAMREPLY:
-                if(args.length > 2 && args[2].equals(channelName)) {
+                if (args.length > 2 && args[2].equals(channelName)) {
                     return true;
                 }
                 break;
 
             case RPL_ENDOFNAMES:
-                if(args.length > 1 && args[1].equals(channelName)) {
+                if (args.length > 1 && args[1].equals(channelName)) {
                     return true;
                 }
+                break;
+
+            default:
+                break;
             }
 
             return false;
@@ -194,7 +204,7 @@ public class IRCChannel implements IRCMessageHandler {
      */
     public void writeMultiple(String... strings) {
         IRCMessage[] privMessages = new IRCMessage[strings.length];
-        for(int i = 0; i < strings.length; i++) {
+        for (int i = 0; i < strings.length; i++) {
             privMessages[i] = new IRCMessage(IRCMessageType.PRIVMSG, this.name, strings[i]);
         }
         this.client.getConnection().sendMessages(privMessages);
@@ -241,11 +251,11 @@ public class IRCChannel implements IRCMessageHandler {
     @Override
     public void handleMessage(IRCMessage message) {
         IRCUser user = IRCUser.fromString(message.getPrefix());
-        
-        switch(message.getType()) {
+
+        switch (message.getType()) {
         case JOIN:
             /* Must have valid user prefix */
-            if(user == null) {
+            if (user == null) {
                 break;
             }
 
@@ -253,75 +263,75 @@ public class IRCChannel implements IRCMessageHandler {
              * Once we've received a join message from the server we ourselves
              * have actually joined
              */
-            if(this.joined.isSet() == false) {
+            if (this.joined.isSet() == false) {
                 this.joined.set();
             }
 
             /* Add user to names list */
-            if(!this.names.contains(user.getNick())) {
+            if (!this.names.contains(user.getNick())) {
                 this.names.add(user.getNick());
             }
 
             /* Call listeners */
-            for(IRCChannelListener listener : this.listeners) {
+            for (IRCChannelListener listener : this.listeners) {
                 listener.onJoin(this, user);
             }
             break;
 
         case PART:
             /* Must have valid user prefix */
-            if(user == null) {
+            if (user == null) {
                 break;
             }
 
             /* Remove nick from names list */
-            if(this.names.contains(user.getNick())) {
+            if (this.names.contains(user.getNick())) {
                 this.names.remove(user.getNick());
             }
 
             /* Call listeners */
-            for(IRCChannelListener listener : this.listeners) {
+            for (IRCChannelListener listener : this.listeners) {
                 listener.onPart(this, user);
             }
             break;
 
         case PRIVMSG:
             /* Must have valid user prefix */
-            if(user == null) {
+            if (user == null) {
                 break;
             }
 
             /* Call listeners */
-            for(IRCChannelListener listener : this.listeners) {
+            for (IRCChannelListener listener : this.listeners) {
                 listener.onPrivateMessage(this, message.getArgs()[1], user);
             }
             break;
 
         case QUIT:
             /* Must have valid user prefix */
-            if(user == null) {
+            if (user == null) {
                 break;
             }
 
             /* Remove nick from names list */
-            if(this.names.contains(user.getNick())) {
+            if (this.names.contains(user.getNick())) {
                 this.names.remove(user.getNick());
             }
 
             /* Call listeners */
-            for(IRCChannelListener listener : this.listeners) {
+            for (IRCChannelListener listener : this.listeners) {
                 listener.onQuit(this, user);
             }
             break;
-            
+
         case NICK:
             /* Must have valid user prefix */
-            if(user == null) {
+            if (user == null) {
                 break;
             }
 
             /* Replace nick in names list */
-            if(this.names.contains(user.getNick())) {
+            if (this.names.contains(user.getNick())) {
                 this.names.remove(user.getNick());
                 this.names.add(message.getArgs()[0]);
             }

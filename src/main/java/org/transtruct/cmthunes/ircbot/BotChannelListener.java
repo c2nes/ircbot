@@ -1,9 +1,13 @@
 package org.transtruct.cmthunes.ircbot;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Set;
 
-import org.transtruct.cmthunes.irc.*;
-import org.transtruct.cmthunes.ircbot.applets.*;
+import org.transtruct.cmthunes.irc.IRCChannel;
+import org.transtruct.cmthunes.irc.IRCChannelListener;
+import org.transtruct.cmthunes.irc.IRCUser;
+import org.transtruct.cmthunes.ircbot.applets.BotApplet;
 
 public class BotChannelListener implements IRCChannelListener, BotApplet {
     private HashMap<String, BotApplet> applets;
@@ -43,22 +47,22 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
         char c;
         int state = 0;
 
-        for(int i = 0; i < argString.length(); i++) {
+        for (int i = 0; i < argString.length(); i++) {
             c = argString.charAt(i);
-            
-            switch(state) {
+
+            switch (state) {
             case 0:
                 /* Consume whitespace */
-                if(Character.isWhitespace(c)) {
+                if (Character.isWhitespace(c)) {
                     break;
                 }
                 state = 1;
 
             case 1:
-                if(c == '\"') {
+                if (c == '\"') {
                     /* Enter quoted string */
                     state = 2;
-                } else if(Character.isWhitespace(c)) {
+                } else if (Character.isWhitespace(c)) {
                     /* End of argument */
                     args.add(sb.toString());
                     sb = new StringBuilder();
@@ -69,9 +73,9 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
                 break;
 
             case 2:
-                if(c == '\\') {
+                if (c == '\\') {
                     state = 3;
-                } else if(c == '\"') {
+                } else if (c == '\"') {
                     state = 1;
                 } else {
                     sb.append(c);
@@ -85,13 +89,13 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
             }
         }
 
-        if(state == 2 || state == 3) {
+        if (state == 2 || state == 3) {
             /* Unmatched quote */
             return null;
         }
-        
+
         /* Store last argument */
-        if(sb.length() > 0) {
+        if (sb.length() > 0) {
             args.add(sb.toString());
         }
 
@@ -106,66 +110,69 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
         message = message.trim();
 
         /* Possible command */
-        if(message.startsWith(myNick + ": ")) {
+        if (message.startsWith(myNick + ": ")) {
             String[] parts = message.split("[ ]+", 3);
-            
-            if(parts.length == 3) {
+
+            if (parts.length == 3) {
                 command = parts[1];
                 unparsedArgs = parts[2].trim();
-            } else if(parts.length == 2) {
+            } else if (parts.length == 2) {
                 command = parts[1];
                 unparsedArgs = "";
             }
-        } else if(message.startsWith(".")) {
+        } else if (message.startsWith(".")) {
             String[] parts = message.substring(1).split("[ ]+", 2);
-            
-            if(parts.length == 2) {
+
+            if (parts.length == 2) {
                 command = parts[0];
                 unparsedArgs = parts[1].trim();
-            } else if(parts.length == 1) {
+            } else if (parts.length == 1) {
                 command = parts[0];
                 unparsedArgs = "";
             }
         }
 
-        if(command != null) {
-            if(this.applets.containsKey(command)) {
+        if (command != null) {
+            if (this.applets.containsKey(command)) {
                 String[] args = this.parseArgs(unparsedArgs);
                 BotApplet applet = this.applets.get(command);
 
-                if(args == null) {
+                if (args == null) {
                     channel.write("Mismatched quotes in argument");
                 } else {
                     try {
                         applet.run(channel, from, command, args, unparsedArgs);
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
-            } else if(message.startsWith(myNick + ": ")) {
-                /* Only bother to respond to unknown commands if the bot is
-                 * asked directly (rather than with a leading '.') */
+            } else if (message.startsWith(myNick + ": ")) {
+                /*
+                 * Only bother to respond to unknown commands if the bot is
+                 * asked directly (rather than with a leading '.')
+                 */
                 channel.write("Unknown command");
             }
         }
     }
 
+    @Override
     public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
-        if(command.equals("help") || command.equals("commands")) {
+        if (command.equals("help") || command.equals("commands")) {
             Set<String> commands = this.applets.keySet();
             StringBuilder sb = new StringBuilder();
 
             sb.append("Commands:");
-            for(String cmd : commands) {
+            for (String cmd : commands) {
                 sb.append(" ");
                 sb.append(cmd);
             }
 
             channel.write(sb.toString());
-        } else if(command.equals("quit") && from.getNick().equals("c2nes")) {
+        } else if (command.equals("quit") && from.getNick().equals("c2nes")) {
             channel.getClient().quit("Leaving");
-        } else if(command.equals("echo")) {
-            for(String arg : args) {
+        } else if (command.equals("echo")) {
+            for (String arg : args) {
                 channel.write(arg);
             }
         }
