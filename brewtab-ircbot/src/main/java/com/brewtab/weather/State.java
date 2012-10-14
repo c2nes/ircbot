@@ -1,4 +1,4 @@
-package com.brewtab.util;
+package com.brewtab.weather;
 
 public enum State {
     AL("Alabama"),

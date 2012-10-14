@@ -11,7 +11,7 @@ import org.jsoup.select.Elements;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
-import com.brewtab.util.URLBuilder;
+import com.brewtab.ircbot.util.URLBuilder;
 
 public class WikiApplet implements BotApplet {
     @Override

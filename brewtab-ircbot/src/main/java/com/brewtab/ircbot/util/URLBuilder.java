@@ -1,4 +1,4 @@
-package com.brewtab.util;
+package com.brewtab.ircbot.util;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;

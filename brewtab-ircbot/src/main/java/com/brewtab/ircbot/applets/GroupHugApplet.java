@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -14,13 +15,11 @@ import org.jsoup.nodes.Element;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
-import com.brewtab.util.Flag;
 
 public class GroupHugApplet implements BotApplet {
     private String url;
     private LinkedBlockingQueue<String> confessions;
-    private String errorMessage;
-    private Flag error;
+    private SynchronousQueue<String> errorMessage;
     private Thread confessionFetcher;
     private List<Integer> page_numbers;
 
@@ -32,9 +31,12 @@ public class GroupHugApplet implements BotApplet {
                 page_numbers.add(page);
                 url = String.format("http://archive.grouphug.us/frontpage?page=%d", page);
 
-                /* Wait for error flag to be cleared */
-                GroupHugApplet.this.error.waitUninterruptiblyFor(false);
-                GroupHugApplet.this.populateConfessions();
+                try {
+                    GroupHugApplet.this.populateConfessions();
+                } catch (InterruptedException e) {
+                    // TODO: Add logging
+                    return;
+                }
             }
         }
     }
@@ -50,15 +52,14 @@ public class GroupHugApplet implements BotApplet {
         }
 
         this.confessions = new LinkedBlockingQueue<String>(10);
-        this.errorMessage = null;
-        this.error = new Flag();
+        this.errorMessage = new SynchronousQueue<String>();
 
         this.confessionFetcher = new Thread(new GetConfessions());
         this.confessionFetcher.setDaemon(true);
         this.confessionFetcher.start();
     }
 
-    private void populateConfessions() {
+    private void populateConfessions() throws InterruptedException {
         Connection connection;
         Connection.Response response;
         Document doc;
@@ -75,19 +76,16 @@ public class GroupHugApplet implements BotApplet {
 
             response = connection.response();
             if (response.statusCode() != 200) {
-                this.errorMessage = response.statusCode() + ": " + response.statusMessage();
-                this.error.set();
+                this.errorMessage.put(response.statusCode() + ": " + response.statusMessage());
                 return;
             }
 
             doc = response.parse();
         } catch (SocketTimeoutException e) {
-            this.errorMessage = "Grouphug request timed out. Waiting before retrying";
-            this.error.set();
+            this.errorMessage.put("Grouphug request timed out. Waiting before retrying");
             return;
         } catch (IOException e) {
-            this.errorMessage = "Caught exception while connecting to grouphug.us: " + e.getClass() + e.getMessage();
-            this.error.set();
+            this.errorMessage.put("Caught exception while connecting to grouphug.us: " + e.getClass() + e.getMessage());
             e.printStackTrace();
             return;
         }
@@ -109,18 +107,18 @@ public class GroupHugApplet implements BotApplet {
                 }
             } catch (IndexOutOfBoundsException e) {
                 /* Failed to find needed elements */
-                this.errorMessage = "Parser error";
-                this.error.set();
+                this.errorMessage.put("Parser error");
                 return;
             }
         }
     }
 
     public String getConfession() {
-        if (this.error.isSet()) {
-            String msg = this.errorMessage;
-            this.error.clear();
-            return msg;
+        String error = this.errorMessage.poll();
+
+        if (error != null) {
+            return error;
+
         } else if (this.confessionFetcher.isAlive()) {
             try {
                 return this.confessions.take();

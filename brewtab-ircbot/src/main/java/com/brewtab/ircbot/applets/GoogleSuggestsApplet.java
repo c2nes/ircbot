@@ -14,7 +14,7 @@ import org.w3c.dom.NodeList;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
-import com.brewtab.util.URLBuilder;
+import com.brewtab.ircbot.util.URLBuilder;
 
 public class GoogleSuggestsApplet implements BotApplet {
     private DocumentBuilder documentBuilder;

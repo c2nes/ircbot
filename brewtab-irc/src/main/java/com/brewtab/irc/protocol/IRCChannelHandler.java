@@ -1,5 +1,8 @@
 package com.brewtab.irc.protocol;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -11,7 +14,6 @@ import org.jboss.netty.channel.SimpleChannelHandler;
 
 import com.brewtab.irc.IRCConnectionManager;
 import com.brewtab.irc.messages.IRCMessage;
-import com.brewtab.util.Flag;
 
 /**
  * An IRCChannelHandler interfaces a high-level IRCConnectionManager to the
@@ -26,10 +28,10 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
     private IRCConnectionManager connectionManager;
 
     /** Set once the connection has be closed */
-    private Flag connectionClosed;
+    private CountDownLatch connectionClosed;
 
     /** Set once the process of closing the connection has started */
-    private Flag connectionClosing;
+    private AtomicBoolean connectionClosing;
 
     /**
      * Once the connection is made, the underly channel is stored so that
@@ -49,8 +51,8 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
         this.connectionManager = connectionManager;
         this.channel = null;
 
-        this.connectionClosed = new Flag();
-        this.connectionClosing = new Flag();
+        this.connectionClosed = new CountDownLatch(1);
+        this.connectionClosing = new AtomicBoolean(false);
     }
 
     @Override
@@ -87,21 +89,15 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
      *             if the connection is not connected
      */
     public void closeChannel() throws IRCNotConnectedException {
-        synchronized (this.connectionClosing) {
-            /* Connection already has started being closed */
-            if (this.connectionClosing.isSet()) {
-                return;
-            }
-
+        if (! this.connectionClosing.getAndSet(true)) {
             /* Attempt to close channel */
             try {
                 ChannelFuture future = this.channel.close();
-                this.connectionClosing.set();
 
                 future.addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
-                        IRCChannelHandler.this.connectionClosed.set();
+                        IRCChannelHandler.this.connectionClosed.countDown();
                     }
                 });
             } catch (NullPointerException e) {
@@ -114,8 +110,8 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
      * Wait for the connection to complete close and for the connection manager
      * to shut down
      */
-    public void awaitClosed() {
-        this.connectionClosed.waitUninterruptiblyFor(true);
+    public void awaitClosed() throws InterruptedException {
+        this.connectionClosed.await();
         this.connectionManager.onShutdown();
     }
 

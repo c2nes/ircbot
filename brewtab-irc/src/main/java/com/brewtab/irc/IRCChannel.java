@@ -2,13 +2,13 @@ package com.brewtab.irc;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.concurrent.CountDownLatch;
 
 import com.brewtab.irc.messages.IRCMessage;
 import com.brewtab.irc.messages.IRCMessageType;
 import com.brewtab.irc.messages.filter.IRCMessageFilter;
 import com.brewtab.irc.messages.filter.IRCMessageFilters;
 import com.brewtab.irc.messages.filter.IRCMessageOrFilter;
-import com.brewtab.util.Flag;
 
 /**
  * An IRC channel. Represents a connection to an IRC channel.
@@ -23,7 +23,7 @@ public class IRCChannel implements IRCMessageHandler {
     private IRCClient client;
 
     /* Set once the channel has been joined */
-    private Flag joined;
+    private CountDownLatch joined;
 
     /* IRCChanneListners for this channel */
     private LinkedList<IRCChannelListener> listeners;
@@ -41,14 +41,14 @@ public class IRCChannel implements IRCMessageHandler {
      */
     private class NamesRequestHandler implements IRCMessageHandler, IRCMessageFilter {
         private ArrayList<String> names;
-        private Flag done;
+        private CountDownLatch done;
 
         /**
          * Create a new NamesRequestHandler
          */
         public NamesRequestHandler() {
             this.names = new ArrayList<String>();
-            this.done = new Flag();
+            this.done = new CountDownLatch(1);
         }
 
         @Override
@@ -62,7 +62,7 @@ public class IRCChannel implements IRCMessageHandler {
                 break;
 
             case RPL_ENDOFNAMES:
-                this.done.set();
+                this.done.countDown();
                 break;
 
             default:
@@ -102,7 +102,12 @@ public class IRCChannel implements IRCMessageHandler {
          * @return the list of names in the channel
          */
         public ArrayList<String> getNames() {
-            this.done.waitUninterruptiblyFor(true);
+            try {
+                this.done.await();
+            } catch (InterruptedException e) {
+                // TODO: Log and return whatever we have
+            }
+
             return this.names;
         }
     }
@@ -118,7 +123,7 @@ public class IRCChannel implements IRCMessageHandler {
     public IRCChannel(IRCClient client, String name) {
         this.client = client;
         this.name = name;
-        this.joined = new Flag();
+        this.joined = new CountDownLatch(1);
         this.listeners = new LinkedList<IRCChannelListener>();
         this.names = null;
 
@@ -165,9 +170,15 @@ public class IRCChannel implements IRCMessageHandler {
 
         this.client.addHandler(namesHandler, namesHandler);
         this.client.getConnection().sendMessage(joinMessage);
-        this.joined.waitUninterruptiblyFor(true);
-        this.names = namesHandler.getNames();
 
+        try {
+            this.joined.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+
+        this.names = namesHandler.getNames();
         this.client.removeHandler(namesHandler);
 
         return true;
@@ -182,7 +193,7 @@ public class IRCChannel implements IRCMessageHandler {
     public void part(String reason) {
         IRCMessage partMessage = new IRCMessage(IRCMessageType.PART, this.name, reason);
         this.client.getConnection().sendMessage(partMessage);
-        this.joined.clear();
+        this.joined = new CountDownLatch(1);
     }
 
     /**
@@ -263,9 +274,7 @@ public class IRCChannel implements IRCMessageHandler {
              * Once we've received a join message from the server we ourselves
              * have actually joined
              */
-            if (this.joined.isSet() == false) {
-                this.joined.set();
-            }
+            this.joined.countDown();
 
             /* Add user to names list */
             if (!this.names.contains(user.getNick())) {

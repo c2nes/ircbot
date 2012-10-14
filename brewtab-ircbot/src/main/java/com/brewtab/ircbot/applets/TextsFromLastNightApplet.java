@@ -5,6 +5,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 
 import org.htmlparser.Node;
 import org.htmlparser.Tag;
@@ -15,22 +16,23 @@ import org.htmlparser.util.Translate;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
-import com.brewtab.util.Flag;
 
 public class TextsFromLastNightApplet implements BotApplet {
     private URL url;
     private LinkedBlockingQueue<String> texts;
-    private String errorMessage;
-    private Flag error;
+    private SynchronousQueue<String> errorMessage;
     private Thread textFetcher;
 
     private class GetTexts implements Runnable {
         @Override
         public void run() {
             while (true) {
-                /* Wait for error flag to be cleared */
-                TextsFromLastNightApplet.this.error.waitUninterruptiblyFor(false);
-                TextsFromLastNightApplet.this.populateTexts();
+                try {
+                    TextsFromLastNightApplet.this.populateTexts();
+                } catch (InterruptedException e) {
+                    // TODO: Log
+                    return;
+                }
             }
         }
     }
@@ -43,8 +45,7 @@ public class TextsFromLastNightApplet implements BotApplet {
         }
 
         this.texts = new LinkedBlockingQueue<String>(10);
-        this.errorMessage = null;
-        this.error = new Flag();
+        this.errorMessage = new SynchronousQueue<String>();
 
         this.textFetcher = new Thread(new GetTexts());
         this.textFetcher.setDaemon(true);
@@ -55,7 +56,7 @@ public class TextsFromLastNightApplet implements BotApplet {
         this("http://www.textsfromlastnight.com/Random-Texts-From-Last-Night.html");
     }
 
-    private void populateTexts() {
+    private void populateTexts() throws InterruptedException {
         HttpURLConnection connection;
         Lexer lexer;
 
@@ -63,13 +64,11 @@ public class TextsFromLastNightApplet implements BotApplet {
             connection = (HttpURLConnection) this.url.openConnection();
             lexer = new Lexer(connection);
         } catch (IOException e) {
-            this.errorMessage = "Could not establish a connection to textsfromlastnight.com";
-            this.error.set();
+            this.errorMessage.put("Could not establish a connection to textsfromlastnight.com");
             return;
 
         } catch (ParserException e) {
-            this.errorMessage = "Parser error";
-            this.error.set();
+            this.errorMessage.put("Parser error");
             return;
 
         }
@@ -104,18 +103,18 @@ public class TextsFromLastNightApplet implements BotApplet {
                 }
 
             } catch (ParserException e) {
-                this.errorMessage = "Parser error";
-                this.error.set();
+                this.errorMessage.put("Parser error");
                 return;
             }
         }
     }
 
     public String getText() {
-        if (this.error.isSet()) {
-            String msg = this.errorMessage;
-            this.error.clear();
-            return msg;
+        String error = this.errorMessage.poll();
+
+        if (error != null) {
+            return error;
+
         } else if (this.textFetcher.isAlive()) {
             try {
                 return this.texts.take();

@@ -3,6 +3,7 @@ package com.brewtab.irc;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -17,7 +18,6 @@ import com.brewtab.irc.messages.IRCMessageType;
 import com.brewtab.irc.messages.filter.IRCMessageFilter;
 import com.brewtab.irc.protocol.IRCChannelHandler;
 import com.brewtab.irc.protocol.IRCChannelPipelineFactory;
-import com.brewtab.util.Flag;
 
 public class IRCClient implements IRCConnectionManager {
     /* Netty objects */
@@ -43,7 +43,7 @@ public class IRCClient implements IRCConnectionManager {
     private IRCUser user;
 
     /* Designate connection status */
-    private Flag connected;
+    private CountDownLatch connected;
     private boolean connectedSuccessfully;
 
     /* Thread pool from which message handlers are dispatched */
@@ -100,7 +100,7 @@ public class IRCClient implements IRCConnectionManager {
         this.address = address;
         this.servername = this.address.getHostName();
 
-        this.connected = new Flag();
+        this.connected = new CountDownLatch(1);
         this.connectedSuccessfully = false;
 
         this.handlers = new HashMap<IRCMessageFilter, IRCMessageHandler>();
@@ -180,7 +180,13 @@ public class IRCClient implements IRCConnectionManager {
         }
 
         /* Now wait for IRC connection */
-        this.connected.waitUninterruptiblyFor(true);
+        try {
+            this.connected.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+
         return this.connectedSuccessfully;
     }
 
@@ -323,20 +329,16 @@ public class IRCClient implements IRCConnectionManager {
         case RPL_LUSEROP:
         case RPL_LUSERUNKNOWN:
             synchronized (this.connected) {
-                if (this.connected.isSet() == false) {
-                    this.connected.set();
-                    this.connectedSuccessfully = true;
-                }
+                this.connectedSuccessfully = true;
+                this.connected.countDown();
             }
             break;
 
         /* Error while connecting */
         case ERR_NICKNAMEINUSE:
             synchronized (this.connected) {
-                if (this.connected.isSet() == false) {
-                    this.connected.set();
-                    this.connectedSuccessfully = false;
-                }
+                this.connectedSuccessfully = false;
+                this.connected.countDown();
             }
             break;
 

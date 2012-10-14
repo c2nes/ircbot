@@ -2,7 +2,6 @@ package com.brewtab.weather;
 
 import java.net.URL;
 
-import com.brewtab.util.State;
 
 public abstract class Location {
     private String city;

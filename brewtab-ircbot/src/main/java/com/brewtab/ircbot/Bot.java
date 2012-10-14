@@ -76,7 +76,7 @@ public class Bot {
         botChannelListener.registerApplet("gs", googleSuggestsApplet);
 
         /* Will block until connection process is complete */
-        client.connect("bot", "bot", "kitimat", "Mr. Bot");
+        client.connect("testbot", "bot", "kitimat", "Mr. Bot");
 
         /*
          * We can add a message handler for the client to print all messages
