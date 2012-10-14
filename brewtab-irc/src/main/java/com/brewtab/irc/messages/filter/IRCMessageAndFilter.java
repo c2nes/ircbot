@@ -1,0 +1,36 @@
+package com.brewtab.irc.messages.filter;
+
+import com.brewtab.irc.messages.IRCMessage;
+
+/**
+ * A filter that matches if all of its constituent parts do. That is, it acts
+ * like an "and" operation on a number of other filters.
+ * 
+ * @author Christopher Thunes <cthunes@brewtab.com>
+ */
+public class IRCMessageAndFilter implements IRCMessageFilter {
+    /** The contained filters */
+    private IRCMessageFilter[] filters;
+
+    /**
+     * Initialize a new filter which matches if and only if all of the given
+     * filters matches
+     * 
+     * @param filters
+     *            A list of filters to combine
+     */
+    public IRCMessageAndFilter(IRCMessageFilter... filters) {
+        this.filters = filters;
+    }
+
+    @Override
+    public boolean check(IRCMessage message) {
+        for (IRCMessageFilter filter : filters) {
+            if (filter.check(message) == false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}

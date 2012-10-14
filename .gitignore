@@ -1,7 +1,9 @@
 *.class
 *.jar
 
-/target
-/.classpath
-/.settings
-/.project
+*.h2.db
+
+target
+.classpath
+.settings
+.project
