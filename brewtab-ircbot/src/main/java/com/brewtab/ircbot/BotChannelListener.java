@@ -26,6 +26,12 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
         this.applets.put(command_name, applet);
     }
 
+    public void registerApplet(BotApplet applet, String... commandNames) {
+        for (String command : commandNames) {
+            this.applets.put(command, applet);
+        }
+    }
+
     @Override
     public void onJoin(IRCChannel channel, IRCUser user) {
         // -

@@ -11,7 +11,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class SQLProperties<V extends Serializable> {
+/**
+ * Simple key-value store backed by a SQL database
+ *
+ * @author Chris Thunes <cthunes@brewtab.com>
+ */
+public class SQLProperties {
     private Connection connection;
 
     public SQLProperties(Connection connection) {
@@ -30,7 +35,11 @@ public class SQLProperties<V extends Serializable> {
     }
 
     @SuppressWarnings("unchecked")
-    public V get(String key) {
+    private <V extends Serializable> V cast(Object obj) {
+        return (V) obj;
+    }
+
+    public <V extends Serializable> V get(String key) {
         try {
             PreparedStatement statement = connection.prepareStatement(
                 "SELECT v FROM properties WHERE k = ?"
@@ -44,7 +53,7 @@ public class SQLProperties<V extends Serializable> {
                 InputStream stream = valueBlob.getBinaryStream();
                 ObjectInputStream objectStream = new ObjectInputStream(stream);
 
-                return (V) objectStream.readObject();
+                return this.<V> cast(objectStream.readObject());
             } else {
                 return null;
             }
@@ -57,7 +66,7 @@ public class SQLProperties<V extends Serializable> {
         }
     }
 
-    public void set(String key, V value) {
+    public <V extends Serializable> void set(String key, V value) {
         try {
             Blob blob = connection.createBlob();
 

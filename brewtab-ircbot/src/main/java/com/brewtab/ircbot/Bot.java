@@ -16,12 +16,14 @@ import com.brewtab.ircbot.applets.GoogleSuggestsApplet;
 import com.brewtab.ircbot.applets.GroupHugApplet;
 import com.brewtab.ircbot.applets.SpellApplet;
 import com.brewtab.ircbot.applets.StatsApplet;
+import com.brewtab.ircbot.applets.TestProperties;
 import com.brewtab.ircbot.applets.TextsFromLastNightApplet;
 import com.brewtab.ircbot.applets.TumblrApplet;
 import com.brewtab.ircbot.applets.UrbanDictionaryApplet;
 import com.brewtab.ircbot.applets.WeatherApplet;
 import com.brewtab.ircbot.applets.WikiApplet;
 import com.brewtab.ircbot.applets.WolframAlphaApplet;
+import com.brewtab.ircbot.util.SQLProperties;
 import com.brewtab.irclog.IRCLogger;
 
 public class Bot {
@@ -36,44 +38,30 @@ public class Bot {
         Connection connection = DriverManager.getConnection("jdbc:h2:brewtab", "sa", "");
         IRCLogger logger = new IRCLogger(connection);
 
-        /* Register applets with the bot */
+        /* Create channel listener */
         BotChannelListener botChannelListener = new BotChannelListener();
-        GroupHugApplet groupHugApplet = new GroupHugApplet();
-        TextsFromLastNightApplet textsFromLastNightApplet = new TextsFromLastNightApplet();
-        CalcApplet calcApplet = new CalcApplet();
-        WeatherApplet weatherApplet = new WeatherApplet();
-        StatsApplet statsApplet = new StatsApplet(logger);
-        BashApplet bashApplet = new BashApplet();
-        WikiApplet wikiApplet = new WikiApplet();
-        TumblrApplet tumblrApplet = new TumblrApplet();
-        WolframAlphaApplet wolframAlphaApplet = new WolframAlphaApplet("XXXX");
-        SpellApplet spellApplet = new SpellApplet();
-        EightBallApplet eightBallApplet = new EightBallApplet();
-        UrbanDictionaryApplet urbanDictionaryApplet = new UrbanDictionaryApplet();
-        GoogleSuggestsApplet googleSuggestsApplet = new GoogleSuggestsApplet();
 
-        botChannelListener.registerApplet("gh", groupHugApplet);
-        botChannelListener.registerApplet("grouphug", groupHugApplet);
-        botChannelListener.registerApplet("tfln", textsFromLastNightApplet);
-        botChannelListener.registerApplet("texts", textsFromLastNightApplet);
-        botChannelListener.registerApplet("m", calcApplet);
-        botChannelListener.registerApplet("math", calcApplet);
-        botChannelListener.registerApplet("calc", calcApplet);
-        botChannelListener.registerApplet("w", weatherApplet);
-        botChannelListener.registerApplet("weather", weatherApplet);
-        botChannelListener.registerApplet("last", statsApplet);
-        botChannelListener.registerApplet("bored", statsApplet);
-        botChannelListener.registerApplet("tired", statsApplet);
-        botChannelListener.registerApplet("bash", bashApplet);
-        botChannelListener.registerApplet("wiki", wikiApplet);
-        botChannelListener.registerApplet("tumblr", tumblrApplet);
-        botChannelListener.registerApplet("alpha", wolframAlphaApplet);
-        botChannelListener.registerApplet("a", wolframAlphaApplet);
-        botChannelListener.registerApplet("spell", spellApplet);
-        botChannelListener.registerApplet("sp", spellApplet);
-        botChannelListener.registerApplet("8ball", eightBallApplet);
-        botChannelListener.registerApplet("urban", urbanDictionaryApplet);
-        botChannelListener.registerApplet("gs", googleSuggestsApplet);
+        /* Simple key-value store for persistent settings/properties */
+        SQLProperties properties = new SQLProperties(connection);
+
+        /* Register applets with the bot */
+        botChannelListener.registerApplet(new GroupHugApplet(), "gh", "grouphug");
+        botChannelListener.registerApplet(new TextsFromLastNightApplet(), "tfln", "texts");
+        botChannelListener.registerApplet(new CalcApplet(), "m", "math", "calc");
+        botChannelListener.registerApplet(new WeatherApplet(properties), "w", "weather");
+        botChannelListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired");
+        botChannelListener.registerApplet(new BashApplet(), "bash");
+        botChannelListener.registerApplet(new WikiApplet(), "wiki");
+        botChannelListener.registerApplet(new TumblrApplet(), "tumblr");
+        botChannelListener.registerApplet(new WolframAlphaApplet("XXXX"), "a", "alpha");
+        botChannelListener.registerApplet(new SpellApplet(), "sp", "spell");
+        botChannelListener.registerApplet(new EightBallApplet(), "8ball");
+        botChannelListener.registerApplet(new UrbanDictionaryApplet(), "urban");
+        botChannelListener.registerApplet(new GoogleSuggestsApplet(), "gs");
+        botChannelListener.registerApplet(new TestProperties(properties), "get", "set");
+
+        /* Listener for ++ and -- */
+        PlusPlus plusPlus = new PlusPlus(properties);
 
         /* Will block until connection process is complete */
         client.connect("testbot", "bot", "kitimat", "Mr. Bot");
@@ -97,6 +85,7 @@ public class Bot {
 
         /* We add a handler for channel messages */
         c.addListener(botChannelListener);
+        c.addListener(plusPlus);
         c.addListener(logger);
 
         /* Wait for client object's connection to exit and close */
