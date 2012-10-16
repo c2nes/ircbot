@@ -86,8 +86,6 @@ public class PlusPlus implements IRCChannelListener {
             newValues.put(key, decrement(channel, key));
         }
 
-        System.out.println(message);
-
         if (newValues.size() > 0) {
             StringBuilder sb = new StringBuilder();
             boolean first = true;
