@@ -16,7 +16,6 @@ import com.brewtab.ircbot.applets.GoogleSuggestsApplet;
 import com.brewtab.ircbot.applets.GroupHugApplet;
 import com.brewtab.ircbot.applets.SpellApplet;
 import com.brewtab.ircbot.applets.StatsApplet;
-import com.brewtab.ircbot.applets.TestProperties;
 import com.brewtab.ircbot.applets.TextsFromLastNightApplet;
 import com.brewtab.ircbot.applets.TumblrApplet;
 import com.brewtab.ircbot.applets.UrbanDictionaryApplet;
@@ -58,7 +57,6 @@ public class Bot {
         botChannelListener.registerApplet(new EightBallApplet(), "8ball");
         botChannelListener.registerApplet(new UrbanDictionaryApplet(), "urban");
         botChannelListener.registerApplet(new GoogleSuggestsApplet(), "gs");
-        botChannelListener.registerApplet(new TestProperties(properties), "get", "set");
 
         /* Listener for ++ and -- */
         PlusPlus plusPlus = new PlusPlus(properties);
