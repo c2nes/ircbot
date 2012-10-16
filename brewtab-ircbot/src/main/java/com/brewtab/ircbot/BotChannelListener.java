@@ -89,7 +89,11 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
                 break;
 
             case 3:
-                sb.append(c);
+                if (c == '\"') {
+                    sb.append('\"');
+                } else if (c == 'n') {
+                    sb.append('\n');
+                }
                 state = 2;
                 break;
             }
