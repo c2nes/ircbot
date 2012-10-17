@@ -8,12 +8,16 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
 import com.brewtab.ircbot.util.URLBuilder;
 
 public class WikiApplet implements BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(WikiApplet.class);
+
     @Override
     public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
         Document doc;
@@ -50,9 +54,10 @@ public class WikiApplet implements BotApplet {
                 }
             }
         } catch (MalformedURLException e) {
-            e.printStackTrace();
+            log.error("malformed url", e);
             return;
         } catch (IOException e) {
+            log.warn("could not retrieve article", e);
             channel.write("No such article");
             return;
         }
@@ -73,7 +78,7 @@ public class WikiApplet implements BotApplet {
                     channel.write("Can not get article summary");
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("could not parse document", e);
             }
         }
     }

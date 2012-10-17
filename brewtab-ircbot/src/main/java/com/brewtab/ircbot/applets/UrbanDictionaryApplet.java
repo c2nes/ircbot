@@ -10,12 +10,16 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
 import com.brewtab.ircbot.util.URLBuilder;
 
 public class UrbanDictionaryApplet implements BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(UrbanDictionaryApplet.class);
+
     private String textWithBreaks(Element element) {
         StringBuilder buffer = new StringBuilder();
 
@@ -86,7 +90,7 @@ public class UrbanDictionaryApplet implements BotApplet {
             }
         } catch (IOException e) {
             channel.write("Unknown error occured");
-            e.printStackTrace();
+            log.error("caught exception while loading page", e);
             return;
         }
 
@@ -115,7 +119,7 @@ public class UrbanDictionaryApplet implements BotApplet {
                     channel.write("Can not get definition");
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("caught exception while parsing", e);
             }
         }
     }

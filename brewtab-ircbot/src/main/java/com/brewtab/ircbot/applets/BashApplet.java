@@ -9,11 +9,15 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
 
 public class BashApplet implements BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(BashApplet.class);
+
     private Thread quoteFetcher;
     private ArrayBlockingQueue<String[]> quotes;
 
@@ -42,7 +46,7 @@ public class BashApplet implements BotApplet {
         try {
             doc = Jsoup.connect("http://bash.org/?random1").get();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("could not get page", e);
             return;
         }
 
@@ -80,7 +84,8 @@ public class BashApplet implements BotApplet {
                 try {
                     this.quotes.put(quote.toArray(new String[0]));
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    log.warn("interrupted while populating quotes");
+                    return;
                 }
             }
         }
@@ -92,7 +97,7 @@ public class BashApplet implements BotApplet {
             String[] quote = this.quotes.take();
             channel.writeMultiple(quote);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.warn("interrupted while retreiving quote");
         }
     }
 }

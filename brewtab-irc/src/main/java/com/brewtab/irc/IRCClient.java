@@ -12,6 +12,8 @@ import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.brewtab.irc.messages.IRCMessage;
 import com.brewtab.irc.messages.IRCMessageType;
@@ -20,6 +22,8 @@ import com.brewtab.irc.protocol.IRCChannelHandler;
 import com.brewtab.irc.protocol.IRCChannelPipelineFactory;
 
 public class IRCClient implements IRCConnectionManager {
+    private static final Logger log = LoggerFactory.getLogger(IRCClient.class);
+
     /* Netty objects */
     private ChannelFactory channelFactory;
     private ClientBootstrap bootstrap;
@@ -77,7 +81,11 @@ public class IRCClient implements IRCConnectionManager {
 
         @Override
         public void run() {
-            this.handler.handleMessage(this.message);
+            try {
+                this.handler.handleMessage(this.message);
+            } catch (Exception e) {
+                log.error("Caught exception from message handler", e);
+            }
         }
     }
 
@@ -231,6 +239,10 @@ public class IRCClient implements IRCConnectionManager {
         return null;
     }
 
+    public IRCPrivateChat getPrivateChat(String nick) {
+        return new IRCPrivateChat(this, nick);
+    }
+
     @Override
     public void onConnect(IRCChannelHandler connection) {
         this.channelHandler = connection;
@@ -302,7 +314,7 @@ public class IRCClient implements IRCConnectionManager {
          * With the underly connection closed we can safely shutdown the thread
          * pool
          */
-        System.out.println("IRCClient.onClose");
+        log.debug("on close");
         synchronized (this.handlers) {
             this.threadPool.shutdown();
         }
@@ -310,7 +322,7 @@ public class IRCClient implements IRCConnectionManager {
 
     @Override
     public void onShutdown() {
-        System.out.println("IRCClient.onShutdown");
+        log.debug("on shutdown");
         this.bootstrap.releaseExternalResources();
     }
 

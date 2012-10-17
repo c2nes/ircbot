@@ -5,10 +5,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
 
 public class SpellApplet implements BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(SpellApplet.class);
+
     Process ispellProcess;
     PrintWriter ispellOut;
     BufferedReader ispellIn;
@@ -17,7 +22,7 @@ public class SpellApplet implements BotApplet {
         try {
             this.ispellProcess = (new ProcessBuilder("ispell", "-a")).start();
         } catch (IOException e) {
-            throw new RuntimeException("Could start ispell process");
+            throw new RuntimeException(e);
         }
 
         this.ispellIn = new BufferedReader(new InputStreamReader(this.ispellProcess.getInputStream()));
@@ -27,8 +32,7 @@ public class SpellApplet implements BotApplet {
         try {
             this.ispellIn.readLine();
         } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error reading from ispell process");
+            throw new RuntimeException(e);
         }
     }
 
@@ -52,7 +56,7 @@ public class SpellApplet implements BotApplet {
             try {
                 line = this.ispellIn.readLine().trim();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("error while reading from ispell", e);
                 return;
             }
 

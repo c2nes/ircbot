@@ -125,7 +125,7 @@ public class IRCChannel implements IRCMessageHandler {
         this.name = name;
         this.joined = new CountDownLatch(1);
         this.listeners = new LinkedList<IRCChannelListener>();
-        this.names = null;
+        this.names = new ArrayList<String>();
 
         /*
          * Build a compound filter collecting messages sent regarding this

@@ -6,7 +6,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class IRCStatistics {
+    private static final Logger log = LoggerFactory.getLogger(IRCStatistics.class);
+
     public static int SEARCH_STARTSWITH = 1;
     public static int SEARCH_CONTAINS = 2;
     public static int SEARCH_MATCHES = 3;
@@ -51,7 +56,7 @@ public class IRCStatistics {
 
             return null;
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("sql error", e);
             return null;
         }
     }
@@ -79,7 +84,7 @@ public class IRCStatistics {
 
             return null;
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("sql error", e);
             return null;
         }
     }
@@ -143,7 +148,7 @@ public class IRCStatistics {
 
             return messages;
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("sql error", e);
             return null;
         }
     }

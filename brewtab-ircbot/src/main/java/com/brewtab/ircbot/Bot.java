@@ -4,6 +4,9 @@ import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCClient;
 import com.brewtab.irc.IRCMessageHandler;
@@ -26,6 +29,8 @@ import com.brewtab.ircbot.util.SQLProperties;
 import com.brewtab.irclog.IRCLogger;
 
 public class Bot {
+    private static final Logger log = LoggerFactory.getLogger(Bot.class);
+
     public static void main(String[] args) throws Exception {
         InetSocketAddress addr = new InetSocketAddress("irc.brewtab.com", 6667);
 
@@ -71,7 +76,7 @@ public class Bot {
         client.addHandler(IRCMessageFilters.PASS, new IRCMessageHandler() {
             @Override
             public void handleMessage(IRCMessage message) {
-                System.out.println("root>>> " + message.toString().trim());
+                log.debug("raw message: {}", message.toString().trim());
             }
         });
 
@@ -88,6 +93,6 @@ public class Bot {
 
         /* Wait for client object's connection to exit and close */
         client.getConnection().awaitClosed();
-        System.out.println("Exiting");
+        log.info("exiting");
     }
 }

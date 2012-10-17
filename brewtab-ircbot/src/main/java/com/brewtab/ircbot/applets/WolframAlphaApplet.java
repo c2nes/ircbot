@@ -8,6 +8,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
 import com.brewtab.irc.IRCChannel;
@@ -15,6 +17,8 @@ import com.brewtab.irc.IRCUser;
 import com.brewtab.ircbot.util.URLBuilder;
 
 public class WolframAlphaApplet implements BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(WolframAlphaApplet.class);
+
     private DocumentBuilder documentBuilder;
     private XPath xpath;
     private String appid;
@@ -23,7 +27,7 @@ public class WolframAlphaApplet implements BotApplet {
         try {
             this.documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
         } catch (ParserConfigurationException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
 
         this.xpath = XPathFactory.newInstance().newXPath();
@@ -48,8 +52,7 @@ public class WolframAlphaApplet implements BotApplet {
         try {
             url = new URLBuilder("http://api.wolframalpha.com/v2/query");
         } catch (MalformedURLException e) {
-            e.printStackTrace();
-            return;
+            throw new RuntimeException(e);
         }
 
         url.setParameter("appid", this.appid);
@@ -78,7 +81,7 @@ public class WolframAlphaApplet implements BotApplet {
                 channel.write("Could not interpret query");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("caught exception while parsing results", e);
             return;
         }
     }

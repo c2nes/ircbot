@@ -16,12 +16,16 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 public class WeatherService {
+    private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
+
     private DocumentBuilderFactory domBuilderFactory;
     private XPath xpath;
 
@@ -46,7 +50,8 @@ public class WeatherService {
             this.neighborhoodExpr = this.xpath.compile("neighborhood/text()");
             this.distanceExpr = this.xpath.compile("distance_km/text()");
         } catch (XPathExpressionException e) {
-            // -
+            log.error("caught exception compiling XPath queries", e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -54,7 +59,7 @@ public class WeatherService {
         try {
             return (String) expr.evaluate(node, XPathConstants.STRING);
         } catch (XPathExpressionException e) {
-            e.printStackTrace();
+            log.error("error while evaluating XPath query", e);
             return "";
         }
     }
@@ -127,8 +132,8 @@ public class WeatherService {
         } catch (SAXException e) {
             throw new WeatherException("Error parsing response");
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new WeatherException("Unexpected exception. Stack trace dumped");
+            log.error("unexpected exception while searching for locations", e);
+            throw new WeatherException("Unexpected exception");
         }
     }
 
@@ -168,8 +173,8 @@ public class WeatherService {
         } catch (SAXException e) {
             throw new WeatherException("Error parsing response");
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new WeatherException("Unexpected exception. Stack trace dumped");
+            log.error("unexpected exception while searching for locations", e);
+            throw new WeatherException("Unexpected exception");
         }
     }
 }

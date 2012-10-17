@@ -12,11 +12,15 @@ import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
 
 public class GroupHugApplet implements BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(GroupHugApplet.class);
+
     private String url;
     private LinkedBlockingQueue<String> confessions;
     private SynchronousQueue<String> errorMessage;
@@ -86,7 +90,7 @@ public class GroupHugApplet implements BotApplet {
             return;
         } catch (IOException e) {
             this.errorMessage.put("Caught exception while connecting to grouphug.us: " + e.getClass() + e.getMessage());
-            e.printStackTrace();
+            log.error("exception while retrieving page", e);
             return;
         }
 

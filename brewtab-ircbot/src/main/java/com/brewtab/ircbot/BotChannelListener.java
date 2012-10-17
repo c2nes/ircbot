@@ -4,12 +4,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCChannelListener;
 import com.brewtab.irc.IRCUser;
 import com.brewtab.ircbot.applets.BotApplet;
 
 public class BotChannelListener implements IRCChannelListener, BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(BotChannelListener.class);
+
     private HashMap<String, BotApplet> applets;
 
     public BotChannelListener() {
@@ -153,7 +158,7 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
                     try {
                         applet.run(channel, from, command, args, unparsedArgs);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error("applet threw exception", e);
                     }
                 }
             } else if (message.startsWith(myNick + ": ")) {

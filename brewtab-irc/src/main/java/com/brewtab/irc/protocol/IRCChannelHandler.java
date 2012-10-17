@@ -11,6 +11,8 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.brewtab.irc.IRCConnectionManager;
 import com.brewtab.irc.messages.IRCMessage;
@@ -24,6 +26,8 @@ import com.brewtab.irc.messages.IRCMessage;
  * @author Christopher Thunes <cthunes@brewtab.com>
  */
 public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessagePipe {
+    private static final Logger log = LoggerFactory.getLogger(IRCChannelHandler.class);
+
     /** The connection manager which requests are passed to */
     private IRCConnectionManager connectionManager;
 
@@ -75,8 +79,7 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-        System.err.println("Exception caught: " + e.getCause().getMessage());
-        e.getCause().printStackTrace();
+        log.error("Exception caught", e.getCause());
         ctx.getChannel().close();
     }
 

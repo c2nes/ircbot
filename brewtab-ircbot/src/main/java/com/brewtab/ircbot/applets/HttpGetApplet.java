@@ -4,11 +4,15 @@ import java.io.IOException;
 
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
 
 public class HttpGetApplet implements BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(HttpGetApplet.class);
+
     private String url;
 
     public HttpGetApplet(String url) {
@@ -32,7 +36,7 @@ public class HttpGetApplet implements BotApplet {
             }
         } catch (IOException e) {
             channel.write("Unknown error occured");
-            e.printStackTrace();
+            log.error("error retrieving page", e);
             return;
         }
     }

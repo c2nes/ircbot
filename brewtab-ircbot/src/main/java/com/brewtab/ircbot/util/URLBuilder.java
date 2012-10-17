@@ -42,7 +42,6 @@ public class URLBuilder {
         try {
             return URLEncoder.encode(s, "UTF8");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
             throw new RuntimeException("Runtime does not support UTF8 encoding");
         }
     }
@@ -51,7 +50,6 @@ public class URLBuilder {
         try {
             return URLDecoder.decode(s, "UTF8");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
             throw new RuntimeException("Runtime does not support UTF8 encoding");
         }
     }

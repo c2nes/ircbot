@@ -12,11 +12,16 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCChannelListener;
 import com.brewtab.irc.IRCUser;
 
 public class IRCLogger implements IRCChannelListener {
+    private static final Logger log = LoggerFactory.getLogger(IRCLogger.class);
+
     private Connection db;
     private PreparedStatement eventStatement;
     private PreparedStatement messageStatement;
@@ -142,7 +147,7 @@ public class IRCLogger implements IRCChannelListener {
                     }
                 }
             } else {
-                System.err.println("Unknown line: " + line);
+                IRCLogger.log.warn("Unknown line: {}", line);
             }
             line = reader.readLine();
         }
@@ -193,7 +198,7 @@ public class IRCLogger implements IRCChannelListener {
         try {
             this.logJoin(this.getCurrentTimestamp(), channel.getName(), user.getNick());
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("SQL error while logging join", e);
         }
     }
 
@@ -202,7 +207,7 @@ public class IRCLogger implements IRCChannelListener {
         try {
             this.logPart(this.getCurrentTimestamp(), channel.getName(), user.getNick());
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("SQL error while loggin part", e);
         }
     }
 
@@ -211,7 +216,7 @@ public class IRCLogger implements IRCChannelListener {
         try {
             this.logQuit(this.getCurrentTimestamp(), channel.getName(), user.getNick());
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("SQL error while logging quit", e);
         }
     }
 
@@ -220,7 +225,7 @@ public class IRCLogger implements IRCChannelListener {
         try {
             this.logMessage(this.getCurrentTimestamp(), channel.getName(), from.getNick(), message);
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("SQL error while logging message", e);
         }
     }
 }

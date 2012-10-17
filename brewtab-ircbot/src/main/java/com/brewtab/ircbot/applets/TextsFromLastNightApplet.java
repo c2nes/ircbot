@@ -13,11 +13,15 @@ import org.htmlparser.Text;
 import org.htmlparser.lexer.Lexer;
 import org.htmlparser.util.ParserException;
 import org.htmlparser.util.Translate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.brewtab.irc.IRCChannel;
 import com.brewtab.irc.IRCUser;
 
 public class TextsFromLastNightApplet implements BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(TextsFromLastNightApplet.class);
+
     private URL url;
     private LinkedBlockingQueue<String> texts;
     private SynchronousQueue<String> errorMessage;
@@ -30,7 +34,7 @@ public class TextsFromLastNightApplet implements BotApplet {
                 try {
                     TextsFromLastNightApplet.this.populateTexts();
                 } catch (InterruptedException e) {
-                    // TODO: Log
+                    log.warn("populator thread interrupted, exiting");
                     return;
                 }
             }
@@ -41,7 +45,7 @@ public class TextsFromLastNightApplet implements BotApplet {
         try {
             this.url = new URL(urlString);
         } catch (MalformedURLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
 
         this.texts = new LinkedBlockingQueue<String>(10);
@@ -64,13 +68,14 @@ public class TextsFromLastNightApplet implements BotApplet {
             connection = (HttpURLConnection) this.url.openConnection();
             lexer = new Lexer(connection);
         } catch (IOException e) {
+            log.warn("could not open connection", e);
             this.errorMessage.put("Could not establish a connection to textsfromlastnight.com");
             return;
 
         } catch (ParserException e) {
+            log.error("parse error", e);
             this.errorMessage.put("Parser error");
             return;
-
         }
 
         Node node = null;
@@ -92,17 +97,13 @@ public class TextsFromLastNightApplet implements BotApplet {
                         if (node instanceof Text) {
                             String text = ((Text) node).getText();
                             text = Translate.decode(text);
-                            try {
-                                this.texts.put(text);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                                return;
-                            }
+                            this.texts.put(text);
                         }
                     }
                 }
 
             } catch (ParserException e) {
+                log.error("parse error", e);
                 this.errorMessage.put("Parser error");
                 return;
             }

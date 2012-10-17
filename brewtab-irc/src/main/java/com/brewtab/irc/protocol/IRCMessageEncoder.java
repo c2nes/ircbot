@@ -27,8 +27,7 @@ public class IRCMessageEncoder extends OneToOneEncoder {
 
             return buffer.toString();
         } else {
-            System.err.println("Did not receive IRCMessage to encode");
-            return null;
+            throw new IllegalArgumentException("msg must be one of IRCMessage or IRCMessage[]");
         }
     }
 }
