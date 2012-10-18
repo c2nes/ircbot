@@ -162,7 +162,26 @@ public enum IRCMessageType {
     ERR_CANTKILLSERVER("483"),
     ERR_NOOPERHOST("491"),
     ERR_UMODEUNKNOWNFLAG("501"),
-    ERR_USERSDONTMATCH("502");
+    ERR_USERSDONTMATCH("502"),
+
+    /* Other common , but non standard message */
+    RPL_SERVICEINFO("231"),
+    RPL_ENDOFSERVICES("232"),
+    RPL_SERVICE("233"),
+    RPL_WHOISCHANOP("316"),
+    RPL_KILLDONE("361"),
+    RPL_CLOSING("362"),
+    RPL_CLOSEEND("363"),
+    RPL_INFOSTART("373"),
+    RPL_MYPORTIS("384"),
+
+    RPL_STATSQLINE("217"),
+    RPL_STATSVLINE("240"),
+    RPL_STATSSLINE("244"),
+    RPL_STATSPING("246"),
+    RPL_STATSBLINE("247"),
+    RPL_STATSDLINE("250"),
+    ERR_NOSERVICEHOST("492");
 
     /** String representation of the message type */
     private String messageTypeString;
