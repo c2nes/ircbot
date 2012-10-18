@@ -66,9 +66,6 @@ public class Bot {
         /* Listener for ++ and -- */
         PlusPlus plusPlus = new PlusPlus(properties);
 
-        /* Will block until connection process is complete */
-        client.connect("testbot", "bot", "kitimat", "Mr. Bot");
-
         /*
          * We can add a message handler for the client to print all messages
          * from the server if we needed to for debugging
@@ -79,6 +76,9 @@ public class Bot {
                 log.debug("raw message: {}", message.toString().trim());
             }
         });
+
+        /* Will block until connection process is complete */
+        client.connect("testbot", "bot", "kitimat", "Mr. Bot");
 
         /*
          * Join a channel. Channels can also be directly instantiated and
