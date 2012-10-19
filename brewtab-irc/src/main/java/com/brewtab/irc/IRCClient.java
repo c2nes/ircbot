@@ -96,8 +96,10 @@ public class IRCClient implements IRCConnectionManager {
      *            The address to connect to
      */
     public IRCClient(InetSocketAddress address) {
-        this.channelFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(),
-                Executors.newCachedThreadPool());
+        this.channelFactory = new NioClientSocketChannelFactory(
+            Executors.newCachedThreadPool(),
+            Executors.newCachedThreadPool());
+
         this.bootstrap = new ClientBootstrap(this.channelFactory);
         this.channelHandler = null;
         this.pipelineFactory = new IRCChannelPipelineFactory(this);

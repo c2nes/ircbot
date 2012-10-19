@@ -12,20 +12,26 @@ import com.brewtab.irc.messages.IRCMessage;
  * @author Christopher Thunes <cthunes@brewtab.com>
  */
 public class IRCMessageEncoder extends OneToOneEncoder {
+    private String encodeMessage(IRCMessage message) {
+        return message.toString();
+    }
+
+    private String encodeMessages(IRCMessage[] messages) {
+        StringBuilder sb = new StringBuilder();
+
+        for (IRCMessage message : messages) {
+            sb.append(encodeMessage(message));
+        }
+
+        return sb.toString();
+    }
+
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) {
-        if (msg instanceof IRCMessage) {
-            IRCMessage message = (IRCMessage) msg;
-            return message.toString();
-        } else if (msg instanceof IRCMessage[]) {
-            IRCMessage[] messages = (IRCMessage[]) msg;
-            StringBuffer buffer = new StringBuffer();
-
-            for (IRCMessage message : messages) {
-                buffer.append(message.toString());
-            }
-
-            return buffer.toString();
+        if (IRCMessage.class.isAssignableFrom(msg.getClass())) {
+            return encodeMessage((IRCMessage) msg);
+        } else if (IRCMessage[].class.isAssignableFrom(msg.getClass())) {
+            return encodeMessages((IRCMessage[]) msg);
         } else {
             throw new IllegalArgumentException("msg must be one of IRCMessage or IRCMessage[]");
         }

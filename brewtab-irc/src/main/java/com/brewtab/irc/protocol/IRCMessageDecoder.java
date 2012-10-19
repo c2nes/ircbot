@@ -23,10 +23,11 @@ public class IRCMessageDecoder extends OneToOneDecoder {
     @Override
     protected Object decode(ChannelHandlerContext ctx, Channel channel, Object msg) {
         String message = (String) msg;
+
         try {
             return IRCMessage.fromString(message);
         } catch (IRCInvalidMessageException e) {
-            log.warn("Received unknown/invalid message", e);
+            log.warn("Received unknown/invalid message: {}", e.getMessage());
             return null;
         }
     }
