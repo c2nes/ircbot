@@ -25,7 +25,7 @@ import com.brewtab.irc.messages.IRCMessage;
  * 
  * @author Christopher Thunes <cthunes@brewtab.com>
  */
-public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessagePipe {
+public class IRCChannelHandler extends SimpleChannelHandler {
     private static final Logger log = LoggerFactory.getLogger(IRCChannelHandler.class);
 
     /** The connection manager which requests are passed to */
@@ -121,7 +121,6 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
     /**
      * Send a message through this connection
      */
-    @Override
     public ChannelFuture sendMessage(IRCMessage message) throws IRCNotConnectedException {
         try {
             return this.channel.write(message);
@@ -133,7 +132,6 @@ public class IRCChannelHandler extends SimpleChannelHandler implements IRCMessag
     /**
      * Send multiple messages through this connection
      */
-    @Override
     public ChannelFuture sendMessages(IRCMessage... messages) throws IRCNotConnectedException {
         try {
             return this.channel.write(messages);
