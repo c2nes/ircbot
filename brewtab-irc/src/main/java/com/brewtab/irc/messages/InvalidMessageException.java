@@ -6,13 +6,13 @@ package com.brewtab.irc.messages;
  * 
  * @author Christopher Thunes <cthunes@brewtab.com>
  */
-public class IRCInvalidMessageException extends IllegalArgumentException {
+public class InvalidMessageException extends IllegalArgumentException {
     private static final long serialVersionUID = 7155869076162198882L;
 
     /**
      * Construct a new IRCInvalidMessageException using a default message
      */
-    public IRCInvalidMessageException() {
+    public InvalidMessageException() {
         super("Invalid message format");
     }
 
@@ -22,7 +22,7 @@ public class IRCInvalidMessageException extends IllegalArgumentException {
      * @param reason
      *            The message to store with the exception
      */
-    public IRCInvalidMessageException(String reason) {
+    public InvalidMessageException(String reason) {
         super(reason);
     }
 }

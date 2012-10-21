@@ -1,4 +1,4 @@
-package com.brewtab.irc.protocol;
+package com.brewtab.irc;
 
 /**
  * Thrown to indicate that an operation was request that could be not be
@@ -6,13 +6,13 @@ package com.brewtab.irc.protocol;
  * 
  * @author Christopher Thunes <cthunes@brewtab.com>
  */
-public class IRCNotConnectedException extends IllegalStateException {
+public class NotConnectedException extends IllegalStateException {
     private static final long serialVersionUID = 4861994587138843189L;
 
     /**
      * Construct a new IRCNotConnectedException with the default message
      */
-    public IRCNotConnectedException() {
+    public NotConnectedException() {
         super("Not connected");
     }
 
@@ -22,7 +22,7 @@ public class IRCNotConnectedException extends IllegalStateException {
      * @param reason
      *            The message to store along with the exception
      */
-    public IRCNotConnectedException(String reason) {
+    public NotConnectedException(String reason) {
         super(reason);
     }
 }

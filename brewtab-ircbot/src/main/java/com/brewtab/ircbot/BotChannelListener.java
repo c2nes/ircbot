@@ -7,12 +7,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCChannelListener;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
+import com.brewtab.irc.client.ChannelListener;
 import com.brewtab.ircbot.applets.BotApplet;
 
-public class BotChannelListener implements IRCChannelListener, BotApplet {
+public class BotChannelListener implements ChannelListener, BotApplet {
     private static final Logger log = LoggerFactory.getLogger(BotChannelListener.class);
 
     private HashMap<String, BotApplet> applets;
@@ -38,17 +38,17 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
     }
 
     @Override
-    public void onJoin(IRCChannel channel, IRCUser user) {
+    public void onJoin(Channel channel, User user) {
         // -
     }
 
     @Override
-    public void onPart(IRCChannel channel, IRCUser user) {
+    public void onPart(Channel channel, User user) {
         // -
     }
 
     @Override
-    public void onQuit(IRCChannel channel, IRCUser user) {
+    public void onQuit(Channel channel, User user) {
         // -
     }
 
@@ -118,8 +118,8 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
     }
 
     @Override
-    public void onPrivateMessage(IRCChannel channel, String message, IRCUser from) {
-        String myNick = channel.getClient().getUser().getNick();
+    public void onMessage(Channel channel, User from, String message) {
+        String myNick = channel.getClient().getNick();
         String command = null;
         String unparsedArgs = null;
         message = message.trim();
@@ -172,7 +172,7 @@ public class BotChannelListener implements IRCChannelListener, BotApplet {
     }
 
     @Override
-    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+    public void run(Channel channel, User from, String command, String[] args, String unparsed) {
         if (command.equals("help") || command.equals("commands")) {
             Set<String> commands = this.applets.keySet();
             StringBuilder sb = new StringBuilder();

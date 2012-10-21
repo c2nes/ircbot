@@ -2,8 +2,8 @@ package com.brewtab.ircbot.applets;
 
 import java.util.List;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
 import com.brewtab.ircbot.util.SQLProperties;
 import com.brewtab.weather.Location;
 import com.brewtab.weather.PersonalWeatherStation;
@@ -20,12 +20,12 @@ public class WeatherApplet implements BotApplet {
         this.properties = properties;
     }
 
-    private String buildKey(IRCChannel channel, IRCUser from) {
+    private String buildKey(Channel channel, User from) {
         return "weather:" + channel.getName() + ":" + from.getNick();
     }
 
     @Override
-    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+    public void run(Channel channel, User from, String command, String[] args, String unparsed) {
         // Load arguments from properties if we aren't given any
         if (args.length == 0) {
             String[] storedArgs = properties.<String[]> get(buildKey(channel, from));

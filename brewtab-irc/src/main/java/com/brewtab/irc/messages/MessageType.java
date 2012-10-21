@@ -7,7 +7,7 @@ import java.util.HashMap;
  * 
  * @author Christopher Thunes <cthunes@brewtab.com>
  */
-public enum IRCMessageType {
+public enum MessageType {
     /* Connection message types */
     PASS("PASS"),
     NICK("NICK"),
@@ -187,10 +187,10 @@ public enum IRCMessageType {
     private String messageTypeString;
 
     /** Type lookup table */
-    private static HashMap<String, IRCMessageType> typeLookup = new HashMap<String, IRCMessageType>();
+    private static HashMap<String, MessageType> typeLookup = new HashMap<String, MessageType>();
     static {
-        for (IRCMessageType t : values()) {
-            IRCMessageType.typeLookup.put(t.toString(), t);
+        for (MessageType t : values()) {
+            MessageType.typeLookup.put(t.toString(), t);
         }
     }
 
@@ -201,7 +201,7 @@ public enum IRCMessageType {
      *            The textual representation of the type as it appears in
      *            messages
      */
-    private IRCMessageType(String text) {
+    private MessageType(String text) {
         this.messageTypeString = text;
     }
 
@@ -224,7 +224,7 @@ public enum IRCMessageType {
      * @return the corresponding IRCMessageType or {@code null} if it is not
      *         found
      */
-    public static IRCMessageType fromString(String text) {
-        return IRCMessageType.typeLookup.get(text);
+    public static MessageType fromString(String text) {
+        return MessageType.typeLookup.get(text);
     }
 }

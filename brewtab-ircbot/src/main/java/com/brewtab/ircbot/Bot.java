@@ -3,15 +3,15 @@ package com.brewtab.ircbot;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCClient;
-import com.brewtab.irc.IRCMessageHandler;
-import com.brewtab.irc.messages.IRCMessage;
-import com.brewtab.irc.messages.filter.IRCMessageFilters;
+import com.brewtab.irc.ConnectionStateListener;
+import com.brewtab.irc.client.Channel;
+import com.brewtab.irc.client.Client;
+import com.brewtab.irc.client.ClientFactory;
 import com.brewtab.ircbot.applets.BashApplet;
 import com.brewtab.ircbot.applets.CalcApplet;
 import com.brewtab.ircbot.applets.EightBallApplet;
@@ -35,7 +35,7 @@ public class Bot {
         InetSocketAddress addr = new InetSocketAddress("irc.brewtab.com", 6667);
 
         /* Create IRC client */
-        IRCClient client = new IRCClient(addr);
+        Client client = ClientFactory.newClient(addr);
 
         /* Create logger */
         Class.forName("org.h2.Driver");
@@ -66,25 +66,26 @@ public class Bot {
         /* Listener for ++ and -- */
         PlusPlus plusPlus = new PlusPlus(properties);
 
-        /*
-         * We can add a message handler for the client to print all messages
-         * from the server if we needed to for debugging
-         */
-        client.addHandler(IRCMessageFilters.PASS, new IRCMessageHandler() {
-            @Override
-            public void handleMessage(IRCMessage message) {
-                log.debug("raw message: {}", message.toString().trim());
-            }
-        });
-
         /* Will block until connection process is complete */
-        client.connect("testbot", "bot", "kitimat", "Mr. Bot");
+        client.setNick("testbot");
+        client.setUsername("bot");
+        client.setHostname("kitimat");
+        client.setRealName("Mr. Bot");
+        client.connect();
 
         /*
          * Join a channel. Channels can also be directly instantiated and
          * separately joined
          */
-        IRCChannel c = client.join("#bot");
+        Channel c = client.join("#bot");
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Hello ");
+        for (String name : c.getNames()) {
+            sb.append(name);
+            sb.append(" ");
+        }
+        c.write(sb.toString());
 
         /* We add a handler for channel messages */
         c.addListener(botChannelListener);
@@ -92,7 +93,26 @@ public class Bot {
         c.addListener(logger);
 
         /* Wait for client object's connection to exit and close */
-        client.getConnection().awaitClosed();
+        final CountDownLatch closed = new CountDownLatch(1);
+
+        client.getConnection().addConnectionStateListener(new ConnectionStateListener() {
+            @Override
+            public void onConnectionConnected() {
+                // --
+            }
+
+            @Override
+            public void onConnectionClosing() {
+                // --
+            }
+
+            @Override
+            public void onConnectionClosed() {
+                closed.countDown();
+            }
+        });
+
+        closed.await();
         log.info("exiting");
     }
 }

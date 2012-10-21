@@ -1,6 +1,5 @@
-package com.brewtab.irc;
+package com.brewtab.irc.messages;
 
-import com.brewtab.irc.messages.IRCMessage;
 
 /**
  * Implementing class are capable of being registered with other objects to
@@ -8,12 +7,12 @@ import com.brewtab.irc.messages.IRCMessage;
  * 
  * @author Christopher Thunes <cthunes@brewtab.com>
  */
-public interface IRCMessageHandler {
+public interface MessageListener {
     /**
      * Handle a message
      * 
      * @param message
      *            The message to process
      */
-    public void handleMessage(IRCMessage message);
+    public void onMessage(Message message);
 }

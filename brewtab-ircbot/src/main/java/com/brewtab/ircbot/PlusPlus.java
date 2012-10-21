@@ -5,9 +5,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCChannelListener;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
+import com.brewtab.irc.client.ChannelListener;
 import com.brewtab.ircbot.util.SQLProperties;
 
 /**
@@ -15,7 +15,7 @@ import com.brewtab.ircbot.util.SQLProperties;
  * 
  * @author Chris Thunes <cthunes@brewtab.com>
  */
-public class PlusPlus implements IRCChannelListener {
+public class PlusPlus implements ChannelListener {
     private SQLProperties properties;
     private Pattern plusPlusPattern;
     private Pattern minusMinusPattern;
@@ -28,21 +28,21 @@ public class PlusPlus implements IRCChannelListener {
     }
 
     @Override
-    public void onJoin(IRCChannel channel, IRCUser user) {
+    public void onJoin(Channel channel, User user) {
         // --
     }
 
     @Override
-    public void onPart(IRCChannel channel, IRCUser user) {
+    public void onPart(Channel channel, User user) {
         // --
     }
 
     @Override
-    public void onQuit(IRCChannel channel, IRCUser user) {
+    public void onQuit(Channel channel, User user) {
         // --
     }
 
-    private long increment(IRCChannel channel, String key) {
+    private long increment(Channel channel, String key) {
         final String fullKey = "plusplus:" + channel.getName() + ":" + key;
         Long score = properties.<Long> get(fullKey);
 
@@ -56,7 +56,7 @@ public class PlusPlus implements IRCChannelListener {
         return score;
     }
 
-    private long decrement(IRCChannel channel, String key) {
+    private long decrement(Channel channel, String key) {
         final String fullKey = "plusplus:" + channel.getName() + ":" + key;
         Long score = properties.<Long> get(fullKey);
 
@@ -71,7 +71,7 @@ public class PlusPlus implements IRCChannelListener {
     }
 
     @Override
-    public void onPrivateMessage(IRCChannel channel, String message, IRCUser from) {
+    public void onMessage(Channel channel, User from, String message) {
         Map<String, Long> newValues = new LinkedHashMap<String, Long>();
 
         Matcher matcher = plusPlusPattern.matcher(message);

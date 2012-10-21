@@ -12,8 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
 import com.brewtab.ircbot.util.URLBuilder;
 
 public class WolframAlphaApplet implements BotApplet {
@@ -35,7 +35,7 @@ public class WolframAlphaApplet implements BotApplet {
     }
 
     @Override
-    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+    public void run(Channel channel, User from, String command, String[] args, String unparsed) {
         URLBuilder url;
         String query = unparsed;
         boolean foundResult = false;

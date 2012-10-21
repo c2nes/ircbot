@@ -10,15 +10,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCClient;
-import com.brewtab.irc.IRCPrivateChat;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
+import com.brewtab.irc.client.Client;
+import com.brewtab.irc.client.ClientFactory;
 
 public class Log4jAppender extends AppenderSkeleton {
     private AtomicBoolean initialized = new AtomicBoolean(false);
     private BlockingQueue<LogLine> buffer = new PriorityBlockingQueue<LogLine>();
 
-    private IRCClient client;
+    private Client client;
     private Thread background;
     private volatile boolean running = true;
 
@@ -59,7 +60,7 @@ public class Log4jAppender extends AppenderSkeleton {
         public void run() {
             initClient();
 
-            final IRCPrivateChat chat = client.getPrivateChat(nick);
+            User user = new User(nick);
 
             while (running) {
                 final LogLine line;
@@ -70,7 +71,7 @@ public class Log4jAppender extends AppenderSkeleton {
                     continue;
                 }
 
-                chat.write(line.getLine());
+                client.sendMessage(user, line.getLine());
             }
         }
     }
@@ -86,7 +87,7 @@ public class Log4jAppender extends AppenderSkeleton {
         public void run() {
             initClient();
 
-            final IRCChannel channel = client.join(channelName);
+            final Channel channel = client.join(channelName);
 
             while (running) {
                 final LogLine line;
@@ -130,8 +131,12 @@ public class Log4jAppender extends AppenderSkeleton {
             }
         }
 
-        client = new IRCClient(new InetSocketAddress(serverAddress, port));
-        client.connect(nick, "log4j", localhost, "Brewtab IRC log4j appender");
+        client = ClientFactory.newClient(new InetSocketAddress(serverAddress, port));
+        client.setNick(nick);
+        client.setUsername("log4j");
+        client.setHostname(localhost);
+        client.setRealName("Brewtab IRC log4j appender");
+        client.connect();
     }
 
     private void init() {
