@@ -27,79 +27,100 @@ import com.brewtab.ircbot.applets.WolframAlphaApplet;
 import com.brewtab.ircbot.util.SQLProperties;
 import com.brewtab.irclog.IRCLogger;
 
-public class Bot {
+public class Bot implements ConnectionStateListener {
     private static final Logger log = LoggerFactory.getLogger(Bot.class);
 
-    public static void main(String[] args) throws Exception {
-        /* Create and connect IRC client */
-        Client client = ClientFactory.newInstance().connect("irc://testbot@irc.brewtab.com");
+    private static String WOLFRAM_ALPHA_KEY = "XXXX";
 
-        /* Create logger */
+    private String connectSpec;
+
+    private Client client;
+    private Channel channel;
+
+    private Connection connection;
+    private IRCLogger logger;
+    private SQLProperties properties;
+
+    private AppletListener appletsListener;
+    private PlusPlus plusPlus;
+
+    private CountDownLatch disconnected;
+
+    public Bot(String connectSpec) {
+        this.connectSpec = connectSpec;
+    }
+
+    private void initApplets() {
+        appletsListener.registerApplet(new GroupHugApplet(), "gh", "grouphug");
+        appletsListener.registerApplet(new TextsFromLastNightApplet(), "tfln", "texts");
+        appletsListener.registerApplet(new CalcApplet(), "m", "math", "calc");
+        appletsListener.registerApplet(new WeatherApplet(properties), "w", "weather");
+        appletsListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired");
+        appletsListener.registerApplet(new BashApplet(), "bash");
+        appletsListener.registerApplet(new WikiApplet(), "wiki");
+        appletsListener.registerApplet(new TumblrApplet(), "tumblr");
+        appletsListener.registerApplet(new WolframAlphaApplet(WOLFRAM_ALPHA_KEY), "a", "alpha");
+        appletsListener.registerApplet(new SpellApplet(), "sp", "spell");
+        appletsListener.registerApplet(new EightBallApplet(), "8ball");
+        appletsListener.registerApplet(new UrbanDictionaryApplet(), "urban");
+        appletsListener.registerApplet(new GoogleSuggestsApplet(), "gs");
+    }
+
+    public void start() throws Exception {
+        client = ClientFactory.newInstance().connect(connectSpec);
+
         Class.forName("org.h2.Driver");
-        Connection connection = DriverManager.getConnection("jdbc:h2:brewtab", "sa", "");
-        IRCLogger logger = new IRCLogger(connection);
+        connection = DriverManager.getConnection("jdbc:h2:brewtab", "sa", "");
+        logger = new IRCLogger(connection);
+        properties = new SQLProperties(connection);
 
-        /* Create channel listener */
-        BotChannelListener botChannelListener = new BotChannelListener();
+        plusPlus = new PlusPlus(properties);
+        appletsListener = new AppletListener();
+        initApplets();
 
-        /* Simple key-value store for persistent settings/properties */
-        SQLProperties properties = new SQLProperties(connection);
+        channel = client.join("#bot");
+        channel.addListener(appletsListener);
+        channel.addListener(plusPlus);
+        channel.addListener(logger);
 
-        /* Register applets with the bot */
-        botChannelListener.registerApplet(new GroupHugApplet(), "gh", "grouphug");
-        botChannelListener.registerApplet(new TextsFromLastNightApplet(), "tfln", "texts");
-        botChannelListener.registerApplet(new CalcApplet(), "m", "math", "calc");
-        botChannelListener.registerApplet(new WeatherApplet(properties), "w", "weather");
-        botChannelListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired");
-        botChannelListener.registerApplet(new BashApplet(), "bash");
-        botChannelListener.registerApplet(new WikiApplet(), "wiki");
-        botChannelListener.registerApplet(new TumblrApplet(), "tumblr");
-        botChannelListener.registerApplet(new WolframAlphaApplet("XXXX"), "a", "alpha");
-        botChannelListener.registerApplet(new SpellApplet(), "sp", "spell");
-        botChannelListener.registerApplet(new EightBallApplet(), "8ball");
-        botChannelListener.registerApplet(new UrbanDictionaryApplet(), "urban");
-        botChannelListener.registerApplet(new GoogleSuggestsApplet(), "gs");
+        disconnected = new CountDownLatch(1);
+    }
 
-        /* Listener for ++ and -- */
-        PlusPlus plusPlus = new PlusPlus(properties);
+    private void awaitDisconnected() throws InterruptedException {
+        disconnected.await();
+    }
 
-        /* Join a channel */
-        Channel c = client.join("#bot");
+    @Override
+    public void onConnectionClosed() {
+        disconnected.countDown();
+    }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("Hello ");
-        for (String name : c.getNames()) {
-            sb.append(name);
-            sb.append(" ");
+    @Override
+    public void onConnectionConnected() {
+        // --
+    }
+
+    @Override
+    public void onConnectionClosing() {
+        // --
+    }
+
+    public static void main(String[] args) throws Exception {
+        Bot bot = new Bot("irc://testbot@irc.brewtab.com/");
+
+        try {
+            bot.start();
+        } catch (Exception e) {
+            log.error("Error starting bot", e);
+            return;
         }
-        c.write(sb.toString());
 
-        /* We add a handler for channel messages */
-        c.addListener(botChannelListener);
-        c.addListener(plusPlus);
-        c.addListener(logger);
+        try {
+            bot.awaitDisconnected();
+        } catch (InterruptedException e) {
+            log.error("main thread interrupted, exiting");
+        }
 
-        /* Wait for client object's connection to exit and close */
-        final CountDownLatch closed = new CountDownLatch(1);
-
-        client.getConnection().addConnectionStateListener(new ConnectionStateListener() {
-            @Override
-            public void onConnectionConnected() {
-                // --
-            }
-
-            @Override
-            public void onConnectionClosing() {
-                // --
-            }
-
-            @Override
-            public void onConnectionClosed() {
-                closed.countDown();
-            }
-        });
-
-        closed.await();
         log.info("exiting");
     }
 }

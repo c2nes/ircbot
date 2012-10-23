@@ -12,12 +12,12 @@ import com.brewtab.irc.client.Channel;
 import com.brewtab.irc.client.ChannelListener;
 import com.brewtab.ircbot.applets.BotApplet;
 
-public class BotChannelListener implements ChannelListener, BotApplet {
-    private static final Logger log = LoggerFactory.getLogger(BotChannelListener.class);
+public class AppletListener implements ChannelListener, BotApplet {
+    private static final Logger log = LoggerFactory.getLogger(AppletListener.class);
 
     private HashMap<String, BotApplet> applets;
 
-    public BotChannelListener() {
+    public AppletListener() {
         this.applets = new HashMap<String, BotApplet>();
 
         /* Register built in commands */
