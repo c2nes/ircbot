@@ -1,7 +1,6 @@
 package com.brewtab.irc.util;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -23,8 +22,7 @@ public class Log4jAppender extends AppenderSkeleton {
     private Thread background;
     private volatile boolean running = true;
 
-    private String serverAddress;
-    private int port = 6667;
+    private String url;
     private String nick = "log4j";
     private String localhost;
     private String quitMessage = "brewtab IRC log4j appender quiting";
@@ -131,12 +129,12 @@ public class Log4jAppender extends AppenderSkeleton {
             }
         }
 
-        client = ClientFactory.newClient(new InetSocketAddress(serverAddress, port));
+        client = ClientFactory.newClient();
         client.setNick(nick);
         client.setUsername("log4j");
         client.setHostname(localhost);
         client.setRealName("Brewtab IRC log4j appender");
-        client.connect();
+        client.connect(url);
     }
 
     private void init() {
@@ -168,12 +166,8 @@ public class Log4jAppender extends AppenderSkeleton {
         this.quitMessage = quitMessage;
     }
 
-    public void setServer(String serverAddress) {
-        this.serverAddress = serverAddress;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public void setNick(String nick) {

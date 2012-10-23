@@ -21,7 +21,12 @@ class NettyChannelPipeline {
     public static ChannelPipeline newPipeline(ChannelHandler connectionHandler) {
         ChannelPipeline pipeline = Channels.pipeline();
 
-        /* Build pipeline */
+        /*
+         * Build pipeline. The first handler in the pipeline is the first
+         * handler for in-bound messages and the last handler for out-bound
+         * messages.
+         */
+
         pipeline.addLast("frameDecoder", getFrameDecoder());
         pipeline.addLast("stringDecoder", new StringDecoder());
         pipeline.addLast("stringEncoder", new StringEncoder());

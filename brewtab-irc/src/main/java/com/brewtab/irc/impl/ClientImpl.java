@@ -1,13 +1,26 @@
 package com.brewtab.irc.impl;
 
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.Executors;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.handler.ssl.SslHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,11 +39,17 @@ import com.brewtab.irc.messages.filter.MessageFilters;
 class ClientImpl implements Client {
     private static final Logger log = LoggerFactory.getLogger(ClientImpl.class);
 
+    public static final int DEFAULT_PORT = 6667;
+    public static final int DEFAULT_SSL_PORT = 6697;
+
+    /* Default SSL context, initialized lazily */
+    private static SSLContext defaultSSLContext = null;
+
+    /* SSLContext used by this client, may be specified externally */
+    private SSLContext sslContext = null;
+
     /* Netty objects */
     private ClientBootstrap bootstrap;
-
-    /* The address of the server */
-    private InetSocketAddress address;
 
     /* Cached copy of the server's name */
     private String servername;
@@ -46,25 +65,15 @@ class ClientImpl implements Client {
 
     private boolean connected;
 
+    private boolean usingSSL;
+
     /**
      * Construct a new IRCClient connected to the given address
      * 
      * @param address The address to connect to
      */
-    public ClientImpl(InetSocketAddress address) {
-        ChannelFactory channelFactory = new NioClientSocketChannelFactory(
-            Executors.newCachedThreadPool(),
-            Executors.newCachedThreadPool());
-
+    public ClientImpl() {
         this.connection = new ConnectionImpl();
-
-        this.bootstrap = new ClientBootstrap(channelFactory);
-        this.bootstrap.setOption("tcpNoDelay", true);
-        this.bootstrap.setOption("remoteAddress", address);
-        this.bootstrap.setPipeline(NettyChannelPipeline.newPipeline(this.connection));
-
-        this.address = address;
-        this.servername = this.address.getHostName();
 
         this.password = null;
         this.nick = null;
@@ -73,6 +82,7 @@ class ClientImpl implements Client {
         this.realName = null;
 
         this.connected = false;
+        this.usingSSL = false;
 
         this.connection.addMessageListener(
             MessageFilters.message(MessageType.PING, (String) null),
@@ -84,13 +94,137 @@ class ClientImpl implements Client {
             });
     }
 
+    private static TrustManager createNonValidatingTrustManager() {
+        return new X509TrustManager() {
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return new X509Certificate[0];
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+                // Pass everything
+            }
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+                // Pass everything
+            }
+        };
+    }
+
+    private static SSLContext getDefaultSSLContext() {
+        if (defaultSSLContext == null) {
+            try {
+                defaultSSLContext = SSLContext.getInstance("TLS");
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("runtime does not support TLS", e);
+            }
+
+            try {
+                defaultSSLContext.init(null, new TrustManager[] { createNonValidatingTrustManager() }, null);
+            } catch (KeyManagementException e) {
+                throw new RuntimeException("failed to initialize default SSLContext", e);
+            }
+        }
+
+        return defaultSSLContext;
+    }
+
+    public void setSSLContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
+    }
+
+    public SSLContext getSSLContext() {
+        if (sslContext == null) {
+            sslContext = getDefaultSSLContext();
+        }
+
+        return sslContext;
+    }
+
+    private SslHandler getClientSSLHandler() {
+        SSLContext context = getSSLContext();
+        SSLEngine engine = context.createSSLEngine();
+        engine.setUseClientMode(true);
+
+        return new SslHandler(engine);
+    }
+
+    private URI parseConnectURISpec(String uriSpec) {
+        final URI uri;
+
+        try {
+            uri = new URI(uriSpec);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (uri.getScheme().toLowerCase().equals("irc")) {
+            usingSSL = false;
+        } else if (uri.getScheme().toLowerCase().equals("ircs")) {
+            usingSSL = true;
+        } else {
+            throw new ConnectionException("protocol must be one of irc or ircs");
+        }
+
+        int port = uri.getPort();
+
+        if (port == -1) {
+            if (usingSSL) {
+                port = DEFAULT_SSL_PORT;
+            } else {
+                port = DEFAULT_PORT;
+            }
+        }
+
+        try {
+            return new URI(uri.getScheme(), null, uri.getHost(), port, null, null, null);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("unexpected exception", e);
+        }
+    }
+
+    private void doSSLHandshake(SslHandler sslHandler) {
+        log.debug("performing SSL handshake");
+        ChannelFuture handshakeFuture = sslHandler.handshake();
+
+        try {
+            handshakeFuture.await();
+        } catch (InterruptedException e) {
+            throw new ConnectionException("Interrupted while performing SSL handshake");
+        }
+
+        if (!handshakeFuture.isSuccess()) {
+            throw new ConnectionException("error performing SSL handshake", handshakeFuture.getCause());
+        }
+    }
+
     /**
      * Connect with a password and with the given information
      */
     @Override
-    public void connect() {
+    public void connect(String uriSpec) {
+        URI uri = parseConnectURISpec(uriSpec);
+
+        ChannelFactory channelFactory = new NioClientSocketChannelFactory(
+            Executors.newCachedThreadPool(),
+            Executors.newCachedThreadPool());
+
+        ChannelPipeline clientPipeline = NettyChannelPipeline.newPipeline(connection);
+        SslHandler sslHandler = null;
+
+        if (usingSSL) {
+            sslHandler = getClientSSLHandler();
+            clientPipeline.addFirst("ssl", sslHandler);
+        }
+
+        bootstrap = new ClientBootstrap(channelFactory);
+        bootstrap.setOption("tcpNoDelay", true);
+        bootstrap.setPipeline(clientPipeline);
+
         /* Perform connection */
-        ChannelFuture future = bootstrap.connect();
+        ChannelFuture future = bootstrap.connect(new InetSocketAddress(uri.getHost(), uri.getPort()));
 
         log.debug("connecting");
 
@@ -102,26 +236,22 @@ class ClientImpl implements Client {
 
         if (future.isSuccess()) {
             log.debug("connected successfully");
-            log.debug("registering connection");
+
+            if (usingSSL) {
+                doSSLHandshake(sslHandler);
+            }
 
             connected = true;
-
-            Message response = registerConnection();
-
-            switch (response.getType()) {
-            case ERR_NICKNAMEINUSE:
-                throw new NickNameInUseException();
-            default:
-                log.debug("connection registered");
-                break;
-            }
+            registerConnection();
         } else {
             log.debug("connection failed");
             throw new ConnectionException(future.getCause());
         }
     }
 
-    private Message registerConnection() {
+    private void registerConnection() {
+        log.debug("registering connection");
+
         Message nickMessage = new Message(MessageType.NICK, this.nick);
         Message userMessage = new Message(MessageType.USER,
             this.username, this.hostname, this.servername, this.realName);
@@ -131,8 +261,10 @@ class ClientImpl implements Client {
             connection.send(new Message(MessageType.PASS, this.password));
         }
 
+        Message response;
+
         try {
-            return connection.request(
+            response = connection.request(
                 null,
                 MessageFilters.any(
                     MessageFilters.message(MessageType.RPL_ENDOFMOTD),
@@ -145,6 +277,14 @@ class ClientImpl implements Client {
                 nickMessage, userMessage).get(0);
         } catch (InterruptedException e) {
             throw new ConnectionException("Interrupted while awaiting connection registration response");
+        }
+
+        switch (response.getType()) {
+        case ERR_NICKNAMEINUSE:
+            throw new NickNameInUseException();
+        default:
+            log.debug("connection registered");
+            break;
         }
     }
 

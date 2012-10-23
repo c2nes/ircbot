@@ -1,6 +1,5 @@
 package com.brewtab.ircbot;
 
-import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.concurrent.CountDownLatch;
@@ -32,10 +31,8 @@ public class Bot {
     private static final Logger log = LoggerFactory.getLogger(Bot.class);
 
     public static void main(String[] args) throws Exception {
-        InetSocketAddress addr = new InetSocketAddress("irc.brewtab.com", 6667);
-
         /* Create IRC client */
-        Client client = ClientFactory.newClient(addr);
+        Client client = ClientFactory.newClient();
 
         /* Create logger */
         Class.forName("org.h2.Driver");
@@ -71,7 +68,9 @@ public class Bot {
         client.setUsername("bot");
         client.setHostname("kitimat");
         client.setRealName("Mr. Bot");
-        client.connect();
+
+        /* Connect to the server */
+        client.connect("irc://irc.brewtab.com");
 
         /*
          * Join a channel. Channels can also be directly instantiated and

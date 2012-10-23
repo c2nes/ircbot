@@ -25,11 +25,11 @@ public interface Client {
     public String getPassword();
 
     /**
-     * Connect to the server.
+     * Connect to a server.
      * 
-     * @param nick
+     * @param uri a URI specifying an irc: or ircs: scheme
      */
-    public void connect();
+    public void connect(String uri);
 
     /**
      * Quit and disconnect from the server
