@@ -26,6 +26,7 @@ import com.brewtab.irc.ConnectionException;
 import com.brewtab.irc.NotConnectedException;
 import com.brewtab.irc.User;
 import com.brewtab.irc.client.Channel;
+import com.brewtab.irc.client.Client;
 import com.brewtab.irc.client.NickNameInUseException;
 import com.brewtab.irc.messages.Message;
 import com.brewtab.irc.messages.MessageListener;
