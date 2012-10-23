@@ -129,12 +129,13 @@ public class Log4jAppender extends AppenderSkeleton {
             }
         }
 
-        client = ClientFactory.newClient();
-        client.setNick(nick);
-        client.setUsername("log4j");
-        client.setHostname(localhost);
-        client.setRealName("Brewtab IRC log4j appender");
-        client.connect(url);
+        ClientFactory clientFactory = ClientFactory.newInstance();
+        clientFactory.setNick(nick);
+        clientFactory.setUsername("log4j");
+        clientFactory.setHostname(localhost);
+        clientFactory.setRealName("Brewtab IRC log4j appender");
+
+        client = clientFactory.connect(url);
     }
 
     private void init() {

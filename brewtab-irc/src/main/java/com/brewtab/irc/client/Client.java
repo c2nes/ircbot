@@ -4,32 +4,16 @@ import com.brewtab.irc.Connection;
 import com.brewtab.irc.User;
 
 public interface Client {
-    public void setUsername(String username);
 
     public String getUsername();
 
-    public void setHostname(String hostname);
-
     public String getHostname();
-
-    public void setRealName(String realName);
 
     public String getRealName();
 
     public void setNick(String nick);
 
     public String getNick();
-
-    public void setPassword(String password);
-
-    public String getPassword();
-
-    /**
-     * Connect to a server.
-     * 
-     * @param uri a URI specifying an irc: or ircs: scheme
-     */
-    public void connect(String uri);
 
     /**
      * Quit and disconnect from the server

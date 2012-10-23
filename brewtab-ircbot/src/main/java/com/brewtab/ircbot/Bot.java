@@ -31,8 +31,8 @@ public class Bot {
     private static final Logger log = LoggerFactory.getLogger(Bot.class);
 
     public static void main(String[] args) throws Exception {
-        /* Create IRC client */
-        Client client = ClientFactory.newClient();
+        /* Create and connect IRC client */
+        Client client = ClientFactory.newInstance().connect("irc://testbot@irc.brewtab.com");
 
         /* Create logger */
         Class.forName("org.h2.Driver");
@@ -63,19 +63,7 @@ public class Bot {
         /* Listener for ++ and -- */
         PlusPlus plusPlus = new PlusPlus(properties);
 
-        /* Will block until connection process is complete */
-        client.setNick("testbot");
-        client.setUsername("bot");
-        client.setHostname("kitimat");
-        client.setRealName("Mr. Bot");
-
-        /* Connect to the server */
-        client.connect("irc://irc.brewtab.com");
-
-        /*
-         * Join a channel. Channels can also be directly instantiated and
-         * separately joined
-         */
+        /* Join a channel */
         Channel c = client.join("#bot");
 
         StringBuilder sb = new StringBuilder();

@@ -1,8 +1,6 @@
 package com.brewtab.irc.impl;
 
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.SocketAddress;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -13,7 +11,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
@@ -29,7 +26,6 @@ import com.brewtab.irc.ConnectionException;
 import com.brewtab.irc.NotConnectedException;
 import com.brewtab.irc.User;
 import com.brewtab.irc.client.Channel;
-import com.brewtab.irc.client.Client;
 import com.brewtab.irc.client.NickNameInUseException;
 import com.brewtab.irc.messages.Message;
 import com.brewtab.irc.messages.MessageListener;
@@ -38,9 +34,6 @@ import com.brewtab.irc.messages.filter.MessageFilters;
 
 class ClientImpl implements Client {
     private static final Logger log = LoggerFactory.getLogger(ClientImpl.class);
-
-    public static final int DEFAULT_PORT = 6667;
-    public static final int DEFAULT_SSL_PORT = 6697;
 
     /* Default SSL context, initialized lazily */
     private static SSLContext defaultSSLContext = null;
@@ -51,11 +44,7 @@ class ClientImpl implements Client {
     /* Netty objects */
     private ClientBootstrap bootstrap;
 
-    /* Cached copy of the server's name */
-    private String servername;
-
     /* Connection information */
-    private String password;
     private String nick;
     private String username;
     private String hostname;
@@ -65,24 +54,20 @@ class ClientImpl implements Client {
 
     private boolean connected;
 
-    private boolean usingSSL;
-
     /**
      * Construct a new IRCClient connected to the given address
      * 
      * @param address The address to connect to
      */
-    public ClientImpl() {
+    ClientImpl() {
         this.connection = new ConnectionImpl();
 
-        this.password = null;
         this.nick = null;
         this.username = null;
         this.hostname = null;
         this.realName = null;
 
         this.connected = false;
-        this.usingSSL = false;
 
         this.connection.addMessageListener(
             MessageFilters.message(MessageType.PING, (String) null),
@@ -92,6 +77,18 @@ class ClientImpl implements Client {
                     connection.send(new Message(MessageType.PONG, message.getArgs()));
                 }
             });
+    }
+
+    void setSSLContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
+    }
+
+    SSLContext getSSLContext() {
+        if (sslContext == null) {
+            sslContext = getDefaultSSLContext();
+        }
+
+        return sslContext;
     }
 
     private static TrustManager createNonValidatingTrustManager() {
@@ -131,58 +128,12 @@ class ClientImpl implements Client {
         return defaultSSLContext;
     }
 
-    public void setSSLContext(SSLContext sslContext) {
-        this.sslContext = sslContext;
-    }
-
-    public SSLContext getSSLContext() {
-        if (sslContext == null) {
-            sslContext = getDefaultSSLContext();
-        }
-
-        return sslContext;
-    }
-
     private SslHandler getClientSSLHandler() {
         SSLContext context = getSSLContext();
         SSLEngine engine = context.createSSLEngine();
         engine.setUseClientMode(true);
 
         return new SslHandler(engine);
-    }
-
-    private URI parseConnectURISpec(String uriSpec) {
-        final URI uri;
-
-        try {
-            uri = new URI(uriSpec);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-
-        if (uri.getScheme().toLowerCase().equals("irc")) {
-            usingSSL = false;
-        } else if (uri.getScheme().toLowerCase().equals("ircs")) {
-            usingSSL = true;
-        } else {
-            throw new ConnectionException("protocol must be one of irc or ircs");
-        }
-
-        int port = uri.getPort();
-
-        if (port == -1) {
-            if (usingSSL) {
-                port = DEFAULT_SSL_PORT;
-            } else {
-                port = DEFAULT_PORT;
-            }
-        }
-
-        try {
-            return new URI(uri.getScheme(), null, uri.getHost(), port, null, null, null);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException("unexpected exception", e);
-        }
     }
 
     private void doSSLHandshake(SslHandler sslHandler) {
@@ -201,12 +152,9 @@ class ClientImpl implements Client {
     }
 
     /**
-     * Connect with a password and with the given information
+     * Connect to the remote server and perform the SSL handshake if SSL is being used.
      */
-    @Override
-    public void connect(String uriSpec) {
-        URI uri = parseConnectURISpec(uriSpec);
-
+    void connect(SocketAddress socketAddress, boolean useSSL) {
         ChannelFactory channelFactory = new NioClientSocketChannelFactory(
             Executors.newCachedThreadPool(),
             Executors.newCachedThreadPool());
@@ -214,7 +162,7 @@ class ClientImpl implements Client {
         ChannelPipeline clientPipeline = NettyChannelPipeline.newPipeline(connection);
         SslHandler sslHandler = null;
 
-        if (usingSSL) {
+        if (useSSL) {
             sslHandler = getClientSSLHandler();
             clientPipeline.addFirst("ssl", sslHandler);
         }
@@ -224,7 +172,7 @@ class ClientImpl implements Client {
         bootstrap.setPipeline(clientPipeline);
 
         /* Perform connection */
-        ChannelFuture future = bootstrap.connect(new InetSocketAddress(uri.getHost(), uri.getPort()));
+        ChannelFuture future = bootstrap.connect(socketAddress);
 
         log.debug("connecting");
 
@@ -237,28 +185,26 @@ class ClientImpl implements Client {
         if (future.isSuccess()) {
             log.debug("connected successfully");
 
-            if (usingSSL) {
+            if (useSSL) {
                 doSSLHandshake(sslHandler);
             }
 
             connected = true;
-            registerConnection();
         } else {
             log.debug("connection failed");
             throw new ConnectionException(future.getCause());
         }
     }
 
-    private void registerConnection() {
+    void registerConnection(String nick, String username, String hostname, String realName, String password) {
         log.debug("registering connection");
 
-        Message nickMessage = new Message(MessageType.NICK, this.nick);
-        Message userMessage = new Message(MessageType.USER,
-            this.username, this.hostname, this.servername, this.realName);
+        Message nickMessage = new Message(MessageType.NICK, nick);
+        Message userMessage = new Message(MessageType.USER, username, hostname, hostname, realName);
 
-        if (this.password != null) {
+        if (password != null) {
             /* Send a PASS message first */
-            connection.send(new Message(MessageType.PASS, this.password));
+            connection.send(new Message(MessageType.PASS, password));
         }
 
         Message response;
@@ -286,6 +232,11 @@ class ClientImpl implements Client {
             log.debug("connection registered");
             break;
         }
+
+        this.nick = nick;
+        this.username = username;
+        this.hostname = hostname;
+        this.realName = realName;
     }
 
     /**
@@ -324,6 +275,7 @@ class ClientImpl implements Client {
      * @return the new IRCChannel object or null if the channel could not be
      *         joined
      */
+    @Override
     public Channel join(String channelName) {
         if (!connected) {
             throw new NotConnectedException();
@@ -350,20 +302,6 @@ class ClientImpl implements Client {
     }
 
     @Override
-    public String getPassword() {
-        return password;
-    }
-
-    @Override
-    public void setPassword(String password) {
-        if (connected) {
-            throw new IllegalStateException("can't set password, already connected");
-        }
-
-        this.password = password;
-    }
-
-    @Override
     public String getNick() {
         return nick;
     }
@@ -386,8 +324,6 @@ class ClientImpl implements Client {
                 throw new RuntimeException("request interrupted");
             }
         }
-
-        this.nick = nick;
     }
 
     @Override
@@ -396,40 +332,13 @@ class ClientImpl implements Client {
     }
 
     @Override
-    public void setUsername(String username) {
-        if (connected) {
-            throw new IllegalStateException("can't set username, already connected");
-        }
-
-        this.username = username;
-    }
-
-    @Override
     public String getHostname() {
         return hostname;
     }
 
     @Override
-    public void setHostname(String hostname) {
-        if (connected) {
-            throw new IllegalStateException("can't set hostname, already connected");
-        }
-
-        this.hostname = hostname;
-    }
-
-    @Override
     public String getRealName() {
         return realName;
-    }
-
-    @Override
-    public void setRealName(String realName) {
-        if (connected) {
-            throw new IllegalStateException("can't set real name, already connected");
-        }
-
-        this.realName = realName;
     }
 
     @Override
