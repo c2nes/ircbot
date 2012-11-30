@@ -7,6 +7,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
 
 import com.brewtab.irc.User;
@@ -155,6 +156,19 @@ public class Log4jAppender extends AppenderSkeleton {
 
     @Override
     protected void append(LoggingEvent event) {
+        /*
+         * We have to explicitly avoid logging anything at a DEBUG of TRACE
+         * level that originates from within the IRC library itself or we risk
+         * recursing infinitely.
+         */
+        if (event.getLevel().toInt() <= Level.DEBUG_INT) {
+            String caller = event.getLocationInformation().getClassName();
+
+            if (caller.startsWith("com.brewtab.irc.impl.")) {
+                return;
+            }
+        }
+
         if (!initialized.getAndSet(true)) {
             init();
         }
