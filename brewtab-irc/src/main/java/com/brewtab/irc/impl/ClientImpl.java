@@ -5,6 +5,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLContext;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.brewtab.irc.Connection;
 import com.brewtab.irc.ConnectionException;
+import com.brewtab.irc.ConnectionStateListener;
 import com.brewtab.irc.NotConnectedException;
 import com.brewtab.irc.User;
 import com.brewtab.irc.client.Channel;
@@ -172,28 +174,56 @@ class ClientImpl implements Client {
         bootstrap.setOption("tcpNoDelay", true);
         bootstrap.setPipeline(clientPipeline);
 
-        /* Perform connection */
-        ChannelFuture future = bootstrap.connect(socketAddress);
-
-        log.debug("connecting");
-
-        try {
-            future.await();
-        } catch (InterruptedException e) {
-            throw new ConnectionException("Interrupted while connecting");
-        }
-
-        if (future.isSuccess()) {
-            log.debug("connected successfully");
-
-            if (useSSL) {
-                doSSLHandshake(sslHandler);
+        /*
+         * The connection future and the connection itself aren't perfectly
+         * synchronized so we have to wait for both to acknowledge that the
+         * connection has been made
+         */
+        final CountDownLatch connectedLatch = new CountDownLatch(1);
+        ConnectionStateListener connectedListener = new ConnectionStateListener() {
+            @Override
+            public void onConnectionConnected() {
+                connectedLatch.countDown();
             }
 
-            connected = true;
-        } else {
-            log.debug("connection failed");
-            throw new ConnectionException(future.getCause());
+            @Override
+            public void onConnectionClosing() {
+            }
+
+            @Override
+            public void onConnectionClosed() {
+            }
+        };
+
+        connection.addConnectionStateListener(connectedListener);
+
+        try {
+            /* Perform connection */
+            ChannelFuture future = bootstrap.connect(socketAddress);
+
+            log.debug("connecting");
+
+            future.await();
+
+            if (future.isSuccess()) {
+                /* This await should be very brief */
+                connectedLatch.await();
+
+                log.debug("connected successfully");
+
+                if (useSSL) {
+                    doSSLHandshake(sslHandler);
+                }
+
+                connected = true;
+            } else {
+                log.debug("connection failed");
+                throw new ConnectionException(future.getCause());
+            }
+        } catch (InterruptedException e) {
+            throw new ConnectionException("Interrupted while connecting");
+        } finally {
+            connection.removeConnectionStateListener(connectedListener);
         }
     }
 
