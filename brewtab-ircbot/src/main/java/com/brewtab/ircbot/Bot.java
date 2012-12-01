@@ -21,9 +21,9 @@ import com.brewtab.ircbot.applets.StatsApplet;
 import com.brewtab.ircbot.applets.TextsFromLastNightApplet;
 import com.brewtab.ircbot.applets.TumblrApplet;
 import com.brewtab.ircbot.applets.UrbanDictionaryApplet;
-import com.brewtab.ircbot.applets.WeatherApplet;
 import com.brewtab.ircbot.applets.WikiApplet;
 import com.brewtab.ircbot.applets.WolframAlphaApplet;
+import com.brewtab.ircbot.applets.WundergroundApplet;
 import com.brewtab.ircbot.util.SQLProperties;
 import com.brewtab.irclog.IRCLogger;
 
@@ -31,6 +31,7 @@ public class Bot implements ConnectionStateListener {
     private static final Logger log = LoggerFactory.getLogger(Bot.class);
 
     private static String WOLFRAM_ALPHA_KEY = "XXXX";
+    private static String WUNDERGROUND_KEY = "XXXX";
 
     private String connectSpec;
 
@@ -54,7 +55,7 @@ public class Bot implements ConnectionStateListener {
         appletsListener.registerApplet(new GroupHugApplet(), "gh", "grouphug");
         appletsListener.registerApplet(new TextsFromLastNightApplet(), "tfln", "texts");
         appletsListener.registerApplet(new CalcApplet(), "m", "math", "calc");
-        appletsListener.registerApplet(new WeatherApplet(properties), "w", "weather");
+        appletsListener.registerApplet(new WundergroundApplet(properties, WUNDERGROUND_KEY), "w", "weather");
         appletsListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired");
         appletsListener.registerApplet(new BashApplet(), "bash");
         appletsListener.registerApplet(new WikiApplet(), "wiki");
