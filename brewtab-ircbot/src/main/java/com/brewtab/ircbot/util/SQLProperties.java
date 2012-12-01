@@ -40,6 +40,10 @@ public class SQLProperties {
     }
 
     public <V extends Serializable> V get(String key) {
+        return this.<V> get(key, null);
+    }
+
+    public <V extends Serializable> V get(String key, V defaultValue) {
         try {
             PreparedStatement statement = connection.prepareStatement(
                 "SELECT v FROM properties WHERE k = ?"
@@ -55,7 +59,7 @@ public class SQLProperties {
 
                 return this.<V> cast(objectStream.readObject());
             } else {
-                return null;
+                return defaultValue;
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
