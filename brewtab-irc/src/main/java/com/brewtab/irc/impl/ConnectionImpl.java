@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,7 +43,7 @@ class ConnectionImpl extends SimpleChannelHandler implements Connection {
         connected = false;
 
         messageListeners = new ConcurrentHashMap<MessageListener, MessageFilter>();
-        connectionStateListeners = Collections.synchronizedList(new ArrayList<ConnectionStateListener>());
+        connectionStateListeners = new CopyOnWriteArrayList<ConnectionStateListener>();
 
         executor = Executors.newCachedThreadPool();
     }
