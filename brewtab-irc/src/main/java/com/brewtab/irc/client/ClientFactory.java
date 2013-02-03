@@ -6,7 +6,7 @@ public abstract class ClientFactory {
     public static final int DEFAULT_PORT = 6667;
     public static final int DEFAULT_SSL_PORT = 6697;
 
-    public static final String DEFAULT_USERNAME = "irc-client";
+    public static final String DEFAULT_USERNAME = "ircclient";
     public static final String DEFAULT_HOSTNAME = "localhost";
     public static final String DEFAULT_REALNAME = "Brewtab IRC Client";
 
