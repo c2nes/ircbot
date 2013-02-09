@@ -1,17 +1,16 @@
 package com.brewtab.ircbot;
 
-import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCClient;
-import com.brewtab.irc.IRCMessageHandler;
-import com.brewtab.irc.messages.IRCMessage;
-import com.brewtab.irc.messages.filter.IRCMessageFilters;
+import com.brewtab.irc.ConnectionStateListener;
+import com.brewtab.irc.client.Channel;
+import com.brewtab.irc.client.Client;
+import com.brewtab.irc.client.ClientFactory;
 import com.brewtab.ircbot.applets.BashApplet;
 import com.brewtab.ircbot.applets.CalcApplet;
 import com.brewtab.ircbot.applets.EightBallApplet;
@@ -22,77 +21,107 @@ import com.brewtab.ircbot.applets.StatsApplet;
 import com.brewtab.ircbot.applets.TextsFromLastNightApplet;
 import com.brewtab.ircbot.applets.TumblrApplet;
 import com.brewtab.ircbot.applets.UrbanDictionaryApplet;
-import com.brewtab.ircbot.applets.WeatherApplet;
 import com.brewtab.ircbot.applets.WikiApplet;
 import com.brewtab.ircbot.applets.WolframAlphaApplet;
+import com.brewtab.ircbot.applets.WundergroundApplet;
 import com.brewtab.ircbot.util.SQLProperties;
 import com.brewtab.irclog.IRCLogger;
 
-public class Bot {
+public class Bot implements ConnectionStateListener {
     private static final Logger log = LoggerFactory.getLogger(Bot.class);
 
-    public static void main(String[] args) throws Exception {
-        InetSocketAddress addr = new InetSocketAddress("irc.brewtab.com", 6667);
+    private static String WOLFRAM_ALPHA_KEY = "XXXX";
+    private static String WUNDERGROUND_KEY = "XXXX";
 
-        /* Create IRC client */
-        IRCClient client = new IRCClient(addr);
+    private String connectSpec;
 
-        /* Create logger */
+    private Client client;
+    private Channel channel;
+
+    private Connection connection;
+    private IRCLogger logger;
+    private SQLProperties properties;
+
+    private AppletListener appletsListener;
+    private PlusPlus plusPlus;
+
+    private CountDownLatch disconnected;
+
+    public Bot(String connectSpec) {
+        this.connectSpec = connectSpec;
+    }
+
+    private void initApplets() {
+        appletsListener.registerApplet(new GroupHugApplet(), "gh", "grouphug");
+        appletsListener.registerApplet(new TextsFromLastNightApplet(), "tfln", "texts");
+        appletsListener.registerApplet(new CalcApplet(), "m", "math", "calc");
+        appletsListener.registerApplet(new WundergroundApplet(properties, WUNDERGROUND_KEY), "w", "weather");
+        appletsListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired");
+        appletsListener.registerApplet(new BashApplet(), "bash");
+        appletsListener.registerApplet(new WikiApplet(), "wiki");
+        appletsListener.registerApplet(new TumblrApplet(), "tumblr");
+        appletsListener.registerApplet(new WolframAlphaApplet(WOLFRAM_ALPHA_KEY), "a", "alpha");
+        appletsListener.registerApplet(new SpellApplet(), "sp", "spell");
+        appletsListener.registerApplet(new EightBallApplet(), "8ball");
+        appletsListener.registerApplet(new UrbanDictionaryApplet(), "urban");
+        appletsListener.registerApplet(new GoogleSuggestsApplet(), "gs");
+    }
+
+    public void start() throws Exception {
+        client = ClientFactory.newInstance().connect(connectSpec);
+
         Class.forName("org.h2.Driver");
-        Connection connection = DriverManager.getConnection("jdbc:h2:brewtab", "sa", "");
-        IRCLogger logger = new IRCLogger(connection);
+        connection = DriverManager.getConnection("jdbc:h2:brewtab", "sa", "");
+        logger = new IRCLogger(connection);
+        properties = new SQLProperties(connection);
 
-        /* Create channel listener */
-        BotChannelListener botChannelListener = new BotChannelListener();
+        plusPlus = new PlusPlus(properties);
+        appletsListener = new AppletListener();
+        initApplets();
 
-        /* Simple key-value store for persistent settings/properties */
-        SQLProperties properties = new SQLProperties(connection);
+        channel = client.join("#bot");
+        channel.addListener(appletsListener);
+        channel.addListener(plusPlus);
+        channel.addListener(logger);
 
-        /* Register applets with the bot */
-        botChannelListener.registerApplet(new GroupHugApplet(), "gh", "grouphug");
-        botChannelListener.registerApplet(new TextsFromLastNightApplet(), "tfln", "texts");
-        botChannelListener.registerApplet(new CalcApplet(), "m", "math", "calc");
-        botChannelListener.registerApplet(new WeatherApplet(properties), "w", "weather");
-        botChannelListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired");
-        botChannelListener.registerApplet(new BashApplet(), "bash");
-        botChannelListener.registerApplet(new WikiApplet(), "wiki");
-        botChannelListener.registerApplet(new TumblrApplet(), "tumblr");
-        botChannelListener.registerApplet(new WolframAlphaApplet("XXXX"), "a", "alpha");
-        botChannelListener.registerApplet(new SpellApplet(), "sp", "spell");
-        botChannelListener.registerApplet(new EightBallApplet(), "8ball");
-        botChannelListener.registerApplet(new UrbanDictionaryApplet(), "urban");
-        botChannelListener.registerApplet(new GoogleSuggestsApplet(), "gs");
+        disconnected = new CountDownLatch(1);
+    }
 
-        /* Listener for ++ and -- */
-        PlusPlus plusPlus = new PlusPlus(properties);
+    private void awaitDisconnected() throws InterruptedException {
+        disconnected.await();
+    }
 
-        /*
-         * We can add a message handler for the client to print all messages
-         * from the server if we needed to for debugging
-         */
-        client.addHandler(IRCMessageFilters.PASS, new IRCMessageHandler() {
-            @Override
-            public void handleMessage(IRCMessage message) {
-                log.debug("raw message: {}", message.toString().trim());
-            }
-        });
+    @Override
+    public void onConnectionClosed() {
+        disconnected.countDown();
+    }
 
-        /* Will block until connection process is complete */
-        client.connect("testbot", "bot", "kitimat", "Mr. Bot");
+    @Override
+    public void onConnectionConnected() {
+        // --
+    }
 
-        /*
-         * Join a channel. Channels can also be directly instantiated and
-         * separately joined
-         */
-        IRCChannel c = client.join("#bot");
+    @Override
+    public void onConnectionClosing() {
+        // --
+    }
 
-        /* We add a handler for channel messages */
-        c.addListener(botChannelListener);
-        c.addListener(plusPlus);
-        c.addListener(logger);
+    public static void main(String[] args) throws Exception {
+        Bot bot = new Bot("irc://testbot@irc.brewtab.com/");
 
-        /* Wait for client object's connection to exit and close */
-        client.getConnection().awaitClosed();
+        try {
+            bot.start();
+        } catch (Exception e) {
+            log.error("Error starting bot", e);
+            return;
+        }
+
+        try {
+            bot.awaitDisconnected();
+        } catch (InterruptedException e) {
+            log.error("main thread interrupted, exiting");
+        }
+
         log.info("exiting");
     }
 }

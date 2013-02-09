@@ -3,8 +3,8 @@ package com.brewtab.ircbot.applets;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
 import com.brewtab.irclog.IRCLogEvent;
 import com.brewtab.irclog.IRCLogger;
 import com.brewtab.irclog.IRCStatistics;
@@ -19,7 +19,7 @@ public class StatsApplet implements BotApplet {
     }
 
     @Override
-    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+    public void run(Channel channel, User from, String command, String[] args, String unparsed) {
         if (command.equals("last") && args.length > 0) {
             String nick = args[0];
             IRCLogEvent event = this.stats.getLastEvent(channel.getName(), nick);

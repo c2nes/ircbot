@@ -1,29 +1,29 @@
 package com.brewtab.irc.util;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCClient;
-import com.brewtab.irc.IRCPrivateChat;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
+import com.brewtab.irc.client.Client;
+import com.brewtab.irc.client.ClientFactory;
 
 public class Log4jAppender extends AppenderSkeleton {
     private AtomicBoolean initialized = new AtomicBoolean(false);
     private BlockingQueue<LogLine> buffer = new PriorityBlockingQueue<LogLine>();
 
-    private IRCClient client;
+    private Client client;
     private Thread background;
     private volatile boolean running = true;
 
-    private String serverAddress;
-    private int port = 6667;
+    private String url;
     private String nick = "log4j";
     private String localhost;
     private String quitMessage = "brewtab IRC log4j appender quiting";
@@ -59,7 +59,7 @@ public class Log4jAppender extends AppenderSkeleton {
         public void run() {
             initClient();
 
-            final IRCPrivateChat chat = client.getPrivateChat(nick);
+            User user = new User(nick);
 
             while (running) {
                 final LogLine line;
@@ -70,7 +70,7 @@ public class Log4jAppender extends AppenderSkeleton {
                     continue;
                 }
 
-                chat.write(line.getLine());
+                client.sendMessage(user, line.getLine());
             }
         }
     }
@@ -86,7 +86,7 @@ public class Log4jAppender extends AppenderSkeleton {
         public void run() {
             initClient();
 
-            final IRCChannel channel = client.join(channelName);
+            final Channel channel = client.join(channelName);
 
             while (running) {
                 final LogLine line;
@@ -130,8 +130,13 @@ public class Log4jAppender extends AppenderSkeleton {
             }
         }
 
-        client = new IRCClient(new InetSocketAddress(serverAddress, port));
-        client.connect(nick, "log4j", localhost, "Brewtab IRC log4j appender");
+        ClientFactory clientFactory = ClientFactory.newInstance();
+        clientFactory.setNick(nick);
+        clientFactory.setUsername("log4j");
+        clientFactory.setHostname(localhost);
+        clientFactory.setRealName("Brewtab IRC log4j appender");
+
+        client = clientFactory.connect(url);
     }
 
     private void init() {
@@ -151,6 +156,19 @@ public class Log4jAppender extends AppenderSkeleton {
 
     @Override
     protected void append(LoggingEvent event) {
+        /*
+         * We have to explicitly avoid logging anything at a DEBUG of TRACE
+         * level that originates from within the IRC library itself or we risk
+         * recursing infinitely.
+         */
+        if (event.getLevel().toInt() <= Level.DEBUG_INT) {
+            String caller = event.getLocationInformation().getClassName();
+
+            if (caller.startsWith("com.brewtab.irc.impl.")) {
+                return;
+            }
+        }
+
         if (!initialized.getAndSet(true)) {
             init();
         }
@@ -163,12 +181,8 @@ public class Log4jAppender extends AppenderSkeleton {
         this.quitMessage = quitMessage;
     }
 
-    public void setServer(String serverAddress) {
-        this.serverAddress = serverAddress;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public void setNick(String nick) {

@@ -15,8 +15,8 @@ import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
 
 public class GroupHugApplet implements BotApplet {
     private static final Logger log = LoggerFactory.getLogger(GroupHugApplet.class);
@@ -136,7 +136,7 @@ public class GroupHugApplet implements BotApplet {
     }
 
     @Override
-    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+    public void run(Channel channel, User from, String command, String[] args, String unparsed) {
         String confession = this.getConfession();
         String[] parts = BotAppletUtil.blockFormat(confession, 300, 10);
         channel.writeMultiple(parts);

@@ -15,11 +15,11 @@ import java.util.Calendar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCChannelListener;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
+import com.brewtab.irc.client.ChannelListener;
 
-public class IRCLogger implements IRCChannelListener {
+public class IRCLogger implements ChannelListener {
     private static final Logger log = LoggerFactory.getLogger(IRCLogger.class);
 
     private Connection db;
@@ -194,7 +194,7 @@ public class IRCLogger implements IRCChannelListener {
     }
 
     @Override
-    public void onJoin(IRCChannel channel, IRCUser user) {
+    public void onJoin(Channel channel, User user) {
         try {
             this.logJoin(this.getCurrentTimestamp(), channel.getName(), user.getNick());
         } catch (SQLException e) {
@@ -203,7 +203,7 @@ public class IRCLogger implements IRCChannelListener {
     }
 
     @Override
-    public void onPart(IRCChannel channel, IRCUser user) {
+    public void onPart(Channel channel, User user) {
         try {
             this.logPart(this.getCurrentTimestamp(), channel.getName(), user.getNick());
         } catch (SQLException e) {
@@ -212,7 +212,7 @@ public class IRCLogger implements IRCChannelListener {
     }
 
     @Override
-    public void onQuit(IRCChannel channel, IRCUser user) {
+    public void onQuit(Channel channel, User user) {
         try {
             this.logQuit(this.getCurrentTimestamp(), channel.getName(), user.getNick());
         } catch (SQLException e) {
@@ -221,7 +221,7 @@ public class IRCLogger implements IRCChannelListener {
     }
 
     @Override
-    public void onPrivateMessage(IRCChannel channel, String message, IRCUser from) {
+    public void onMessage(Channel channel, User from, String message) {
         try {
             this.logMessage(this.getCurrentTimestamp(), channel.getName(), from.getNick(), message);
         } catch (SQLException e) {

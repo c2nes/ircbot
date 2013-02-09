@@ -14,8 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
 import com.brewtab.ircbot.util.URLBuilder;
 
 public class GoogleSuggestsApplet implements BotApplet {
@@ -37,7 +37,7 @@ public class GoogleSuggestsApplet implements BotApplet {
     }
 
     @Override
-    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+    public void run(Channel channel, User from, String command, String[] args, String unparsed) {
         URLBuilder url;
         String query = unparsed;
 

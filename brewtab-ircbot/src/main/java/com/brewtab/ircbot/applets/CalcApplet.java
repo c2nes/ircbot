@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.regex.Pattern;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
 
 public class CalcApplet implements BotApplet {
     private enum OperatorType {
@@ -339,7 +339,7 @@ public class CalcApplet implements BotApplet {
     }
 
     @Override
-    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+    public void run(Channel channel, User from, String command, String[] args, String unparsed) {
         String expression = unparsed;
 
         try {

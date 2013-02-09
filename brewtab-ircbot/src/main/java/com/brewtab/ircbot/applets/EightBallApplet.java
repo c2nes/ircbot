@@ -2,8 +2,8 @@ package com.brewtab.ircbot.applets;
 
 import java.util.Random;
 
-import com.brewtab.irc.IRCChannel;
-import com.brewtab.irc.IRCUser;
+import com.brewtab.irc.User;
+import com.brewtab.irc.client.Channel;
 
 public class EightBallApplet implements BotApplet {
     private Random random;
@@ -13,7 +13,7 @@ public class EightBallApplet implements BotApplet {
     }
 
     @Override
-    public void run(IRCChannel channel, IRCUser from, String command, String[] args, String unparsed) {
+    public void run(Channel channel, User from, String command, String[] args, String unparsed) {
         final String[] answers = { "It is certain", "It is decidedly so", "Without a doubt", "Yes \u2013 definitely",
                 "You may rely on it", "As I see it, yes", "Most likely", "Outlook good", "Signs point to yes", "Yes",
                 "Reply hazy, try again", "Ask again later", "Better not tell you now", "Cannot predict now",
