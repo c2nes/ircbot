@@ -215,39 +215,47 @@ public class IRCLogger implements ChannelListener {
     }
 
     void logJoin(Timestamp timestamp, String channel, String nick) throws SQLException {
-        this.eventStatement.setTimestamp(1, timestamp);
-        this.eventStatement.setString(2, "join");
-        this.eventStatement.setString(3, nick);
-        this.eventStatement.setString(4, channel);
-        this.eventStatement.executeUpdate();
-        this.eventStatement.clearParameters();
+        synchronized (eventStatement) {
+            this.eventStatement.setTimestamp(1, timestamp);
+            this.eventStatement.setString(2, "join");
+            this.eventStatement.setString(3, nick);
+            this.eventStatement.setString(4, channel);
+            this.eventStatement.executeUpdate();
+            this.eventStatement.clearParameters();
+        }
     }
 
     void logPart(Timestamp timestamp, String channel, String nick) throws SQLException {
-        this.eventStatement.setTimestamp(1, timestamp);
-        this.eventStatement.setString(2, "part");
-        this.eventStatement.setString(3, nick);
-        this.eventStatement.setString(4, channel);
-        this.eventStatement.executeUpdate();
-        this.eventStatement.clearParameters();
+        synchronized (eventStatement) {
+            this.eventStatement.setTimestamp(1, timestamp);
+            this.eventStatement.setString(2, "part");
+            this.eventStatement.setString(3, nick);
+            this.eventStatement.setString(4, channel);
+            this.eventStatement.executeUpdate();
+            this.eventStatement.clearParameters();
+        }
     }
 
     void logQuit(Timestamp timestamp, String channel, String nick) throws SQLException {
-        this.eventStatement.setTimestamp(1, timestamp);
-        this.eventStatement.setString(2, "quit");
-        this.eventStatement.setString(3, nick);
-        this.eventStatement.setString(4, channel);
-        this.eventStatement.executeUpdate();
-        this.eventStatement.clearParameters();
+        synchronized (eventStatement) {
+            this.eventStatement.setTimestamp(1, timestamp);
+            this.eventStatement.setString(2, "quit");
+            this.eventStatement.setString(3, nick);
+            this.eventStatement.setString(4, channel);
+            this.eventStatement.executeUpdate();
+            this.eventStatement.clearParameters();
+        }
     }
 
     void logMessage(Timestamp timestamp, String channel, String from, String message) throws SQLException {
-        this.messageStatement.setTimestamp(1, timestamp);
-        this.messageStatement.setString(2, channel);
-        this.messageStatement.setString(3, from);
-        this.messageStatement.setString(4, message);
-        this.messageStatement.executeUpdate();
-        this.messageStatement.clearParameters();
+        synchronized (messageStatement) {
+            this.messageStatement.setTimestamp(1, timestamp);
+            this.messageStatement.setString(2, channel);
+            this.messageStatement.setString(3, from);
+            this.messageStatement.setString(4, message);
+            this.messageStatement.executeUpdate();
+            this.messageStatement.clearParameters();
+        }
     }
 
     private Timestamp getCurrentTimestamp() {
