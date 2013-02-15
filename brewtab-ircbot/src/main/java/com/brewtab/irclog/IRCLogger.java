@@ -58,7 +58,7 @@ public class IRCLogger implements ChannelListener {
                 IRCLogEvent event = new IRCLogEvent(IRCLogEvent.MESSAGE_EVENT);
 
                 if (columns.contains("msg_time")) {
-                    event.setDate(rows.getDate("msg_time"));
+                    event.setDate(rows.getTimestamp("msg_time"));
                 }
 
                 if (columns.contains("channel")) {
@@ -141,7 +141,7 @@ public class IRCLogger implements ChannelListener {
                 }
 
                 if (columns.contains("event_time")) {
-                    event.setDate(rows.getDate("event_time"));
+                    event.setDate(rows.getTimestamp("event_time"));
                 }
 
                 if (columns.contains("extra")) {
