@@ -128,7 +128,7 @@ public class Bot implements ConnectionStateListener {
         appletsListener.registerApplet(new TextsFromLastNightApplet(), "tfln", "texts");
         appletsListener.registerApplet(new CalcApplet(), "m", "math", "calc");
         appletsListener.registerApplet(new WundergroundApplet(properties, wundergroundApiKey), "w", "weather");
-        appletsListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired");
+        appletsListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired", "search");
         appletsListener.registerApplet(new BashApplet(), "bash");
         appletsListener.registerApplet(new WikiApplet(), "wiki");
         appletsListener.registerApplet(new TumblrApplet(), "tumblr");

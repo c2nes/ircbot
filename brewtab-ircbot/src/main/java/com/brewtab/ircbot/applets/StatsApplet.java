@@ -3,11 +3,16 @@ package com.brewtab.ircbot.applets;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.brewtab.irc.User;
 import com.brewtab.irc.client.Channel;
 import com.brewtab.irclog.IRCLogEvent;
 import com.brewtab.irclog.IRCLogger;
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 
 public class StatsApplet implements BotApplet {
@@ -17,6 +22,99 @@ public class StatsApplet implements BotApplet {
     public StatsApplet(IRCLogger logger) {
         this.logger = logger;
         this.dateFormat = new SimpleDateFormat("dd MMM yyyy HH:mm");
+    }
+
+    private int tsQueryCount(String channel, String query) {
+        String sql = "SELECT COUNT(1) FROM messages WHERE channel = ?"
+            + " AND to_tsvector('english', message) @@ to_tsquery(?) AND message NOT LIKE '.search %'";
+        PreparedStatement stmt = logger.prepareQuery(sql);
+
+        try {
+            stmt.setString(1, channel);
+            stmt.setString(2, query);
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return logger.countMessages(stmt);
+    }
+
+    private int tsQueryCount(String channel, String nick, String query) {
+        String sql = "SELECT COUNT(1) FROM messages WHERE channel = ? AND nick = ?"
+            + " AND to_tsvector('english', message) @@ to_tsquery(?) AND message NOT LIKE '.search %'";
+        PreparedStatement stmt = logger.prepareQuery(sql);
+
+        try {
+            stmt.setString(1, channel);
+            stmt.setString(2, nick);
+            stmt.setString(3, query);
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return logger.countMessages(stmt);
+    }
+
+    private List<IRCLogEvent> tsQuery(String channel, String query) {
+        String sql = "SELECT * FROM messages WHERE channel = ?"
+            + " AND to_tsvector('english', message) @@ to_tsquery(?) AND message NOT LIKE '.search %'";
+        PreparedStatement stmt = logger.prepareQuery(sql);
+
+        try {
+            stmt.setString(1, channel);
+            stmt.setString(2, query);
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return logger.queryMessages(stmt);
+    }
+
+    private List<IRCLogEvent> tsQuery(String channel, String nick, String query) {
+        String sql = "SELECT * FROM messages WHERE channel = ? AND nick = ?"
+            + " AND to_tsvector('english', message) @@ to_tsquery(?) AND message NOT LIKE '.search %'";
+        PreparedStatement stmt = logger.prepareQuery(sql);
+
+        try {
+            stmt.setString(1, channel);
+            stmt.setString(2, nick);
+            stmt.setString(3, query);
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return logger.queryMessages(stmt);
+    }
+
+    private IRCLogEvent tsQueryLast(String channel, String query) {
+        String sql = "SELECT * FROM messages WHERE channel = ?"
+            + " AND to_tsvector('english', message) @@ to_tsquery(?) AND message NOT LIKE '.search %' ORDER BY msg_time DESC LIMIT 1";
+        PreparedStatement stmt = logger.prepareQuery(sql);
+
+        try {
+            stmt.setString(1, channel);
+            stmt.setString(2, query);
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return logger.queryMessage(stmt);
+    }
+
+    private IRCLogEvent tsQueryLast(String channel, String nick, String query) {
+        String sql = "SELECT * FROM messages WHERE channel = ? AND nick = ?"
+            + " AND to_tsvector('english', message) @@ to_tsquery(?) AND message NOT LIKE '.search %' ORDER BY msg_time DESC LIMIT 1";
+        PreparedStatement stmt = logger.prepareQuery(sql);
+
+        try {
+            stmt.setString(1, channel);
+            stmt.setString(2, nick);
+            stmt.setString(3, query);
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return logger.queryMessage(stmt);
     }
 
     private PreparedStatement lastEventStmt(String channel, String nick) {
@@ -108,6 +206,21 @@ public class StatsApplet implements BotApplet {
         channel.write(String.format("%s is %d many tired", nick, count));
     }
 
+    private void query(Channel channel, String query) {
+        int count = tsQueryCount(channel.getName(), query);
+
+        if (count == 0) {
+            channel.write("No messages found");
+        } else {
+            IRCLogEvent msg = tsQueryLast(channel.getName(), query);
+
+            channel.writeMultiple(
+                String.format("%d %s found. Most recent on %s.", count, count > 1 ? "results" : "result", dateFormat.format(msg.getDate())),
+                String.format("<%s> %s", msg.getNick(), msg.getData())
+                );
+        }
+    }
+
     @Override
     public void run(Channel channel, User from, String command, String[] args, String unparsed) {
         if (command.equals("last") && args.length > 0) {
@@ -130,6 +243,17 @@ public class StatsApplet implements BotApplet {
             }
 
             tired(channel, nick);
+        } else if (command.equals("search")) {
+            List<String> words = new ArrayList<String>();
+            Matcher wordsMatcher = Pattern.compile("\\w+").matcher(unparsed);
+
+            while (wordsMatcher.find()) {
+                words.add(wordsMatcher.group());
+            }
+
+            String query = Joiner.on(" & ").join(words);
+
+            query(channel, query);
         }
     }
 }
