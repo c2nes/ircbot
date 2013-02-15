@@ -1,15 +1,17 @@
 package com.brewtab.ircbot.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import com.google.common.base.Throwables;
 
 /**
  * Simple key-value store backed by a SQL database
@@ -28,6 +30,38 @@ public class SQLProperties {
         return (V) obj;
     }
 
+    private byte[] serialize(Object obj) {
+        try {
+            ByteArrayOutputStream bstream = new ByteArrayOutputStream();
+            ObjectOutputStream valueStream = new ObjectOutputStream(bstream);
+            valueStream.writeObject(obj);
+            valueStream.close();
+
+            byte[] objBytes = bstream.toByteArray();
+            bstream.close();
+
+            return objBytes;
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private Object deserialize(byte[] objBytes) {
+        try {
+            ByteArrayInputStream bstream = new ByteArrayInputStream(objBytes);
+            ObjectInputStream valueStream = new ObjectInputStream(bstream);
+            Object obj = valueStream.readObject();
+            valueStream.close();
+            bstream.close();
+
+            return obj;
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        } catch (ClassNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
     public <V extends Serializable> V get(String key) {
         return this.<V> get(key, null);
     }
@@ -42,36 +76,26 @@ public class SQLProperties {
 
             ResultSet results = statement.executeQuery();
             if (results.next()) {
-                Blob valueBlob = results.getBlob(1);
-                InputStream stream = valueBlob.getBinaryStream();
-                ObjectInputStream objectStream = new ObjectInputStream(stream);
+                Object value = deserialize(results.getBytes(1));
 
-                return this.<V> cast(objectStream.readObject());
+                return this.<V> cast(value);
             } else {
                 return defaultValue;
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
 
     public <V extends Serializable> void set(String key, V value) {
         try {
-            Blob blob = connection.createBlob();
-
-            ObjectOutputStream valueStream = new ObjectOutputStream(blob.setBinaryStream(1));
-            valueStream.writeObject(value);
-            valueStream.close();
+            byte[] valueBytes = serialize(value);
 
             PreparedStatement statement = connection.prepareStatement(
-                "UPDATE properties SET v = ? WHERE k = ? LIMIT 1"
+                "UPDATE properties SET v = ? WHERE k = ?"
                 );
 
-            statement.setBlob(1, blob);
+            statement.setBytes(1, valueBytes);
             statement.setString(2, key);
 
             // If no update was performed instead insert the value
@@ -81,12 +105,10 @@ public class SQLProperties {
                     );
 
                 statement.setString(1, key);
-                statement.setBlob(2, blob);
+                statement.setBytes(2, valueBytes);
                 statement.execute();
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
