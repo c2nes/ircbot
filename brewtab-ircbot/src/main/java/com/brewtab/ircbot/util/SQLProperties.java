@@ -21,17 +21,6 @@ public class SQLProperties {
 
     public SQLProperties(Connection connection) {
         this.connection = connection;
-        try {
-            this.connection.prepareStatement(
-                "CREATE TABLE IF NOT EXISTS properties (k VARCHAR PRIMARY KEY, v BLOB)"
-                ).execute();
-
-            this.connection.prepareStatement(
-                "CREATE INDEX IF NOT EXISTS idxprops ON properties(k)"
-                ).execute();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @SuppressWarnings("unchecked")
