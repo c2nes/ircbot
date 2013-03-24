@@ -79,6 +79,10 @@ public class URLBuilder {
         this.queryItems.put(key, value);
     }
 
+    public URL toUrl() throws MalformedURLException {
+        return new URL(toString());
+    }
+
     @Override
     public String toString() {
         StringBuilder buffer = new StringBuilder();

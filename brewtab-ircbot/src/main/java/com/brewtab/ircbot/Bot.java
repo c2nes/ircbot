@@ -22,6 +22,7 @@ import com.brewtab.ircbot.applets.GoogleSuggestsApplet;
 import com.brewtab.ircbot.applets.GroupHugApplet;
 import com.brewtab.ircbot.applets.SpellApplet;
 import com.brewtab.ircbot.applets.StatsApplet;
+import com.brewtab.ircbot.applets.StockApplet;
 import com.brewtab.ircbot.applets.TextsFromLastNightApplet;
 import com.brewtab.ircbot.applets.TumblrApplet;
 import com.brewtab.ircbot.applets.UrbanDictionaryApplet;
@@ -137,6 +138,7 @@ public class Bot implements ConnectionStateListener {
         appletsListener.registerApplet(new EightBallApplet(), "8ball");
         appletsListener.registerApplet(new UrbanDictionaryApplet(), "urban");
         appletsListener.registerApplet(new GoogleSuggestsApplet(), "gs");
+        appletsListener.registerApplet(new StockApplet(), "stock");
     }
 
     private Connection createConnection() throws Exception {
