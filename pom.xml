@@ -8,7 +8,16 @@
   <version>0.9.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>brewtab-irc-parent</name>
+  <name>Brewtab IRC Library</name>
+  <url>http://www.github.com/c2nes/ircbot</url>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>http://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <modules>
     <module>brewtab-irc</module>
@@ -145,14 +154,12 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>4.10</version>
-        <scope>test</scope>
       </dependency>
 
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
         <version>1.9.5</version>
-        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>

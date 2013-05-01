@@ -12,8 +12,7 @@
   <artifactId>brewtab-irc</artifactId>
   <packaging>jar</packaging>
 
-  <name>brewtab-irc</name>
-  <url>http://www.github.com/c2nes/ircbot</url>
+  <name>Brewtab IRC Client</name>
 
   <build>
     <plugins>
