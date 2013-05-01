@@ -1,16 +1,37 @@
+/*
+ * Copyright (c) 2013 Christopher Thunes
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 package com.brewtab.irclog;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import com.brewtab.irc.User;
 import com.brewtab.irc.client.Channel;
 import com.brewtab.irc.client.ChannelListener;
+import com.google.common.base.Throwables;
 
 public class IRCLogger implements ChannelListener {
     private static final Logger log = LoggerFactory.getLogger(IRCLogger.class);
@@ -29,53 +51,180 @@ public class IRCLogger implements ChannelListener {
     public IRCLogger(Connection dbConnection) throws SQLException {
         this.db = dbConnection;
 
-        this.initTables();
-        this.openSession();
-
         this.eventStatement = this.db
-                .prepareStatement("INSERT INTO event_log (event_time, type, user, extra) VALUES (?, ?, ?, ?)");
+            .prepareStatement("INSERT INTO events (event_time, type, nick, extra) VALUES (?, ?, ?, ?)");
         this.messageStatement = this.db
-                .prepareStatement("INSERT INTO message_log (msg_time, channel, from_nick, message) VALUES (?, ?, ?, ?)");
+            .prepareStatement("INSERT INTO messages (msg_time, channel, nick, message) VALUES (?, ?, ?, ?)");
     }
 
-    private void initTables() throws SQLException {
-        Statement statement = db.createStatement();
-
-        statement.addBatch("CREATE TABLE IF NOT EXISTS sessions"
-                + " (id INT AUTO_INCREMENT PRIMARY KEY, start_time"
-                + " TIMESTAMP, end_time TIMESTAMP, active BOOLEAN);");
-
-        statement.addBatch("CREATE TABLE IF NOT EXISTS event_log"
-                + " (id INT AUTO_INCREMENT PRIMARY KEY, event_time TIMESTAMP,"
-                + " type CHAR(8), user VARCHAR(32), extra VARCHAR(64));");
-
-        statement.addBatch("CREATE TABLE IF NOT EXISTS message_log"
-                + " (id INT AUTO_INCREMENT PRIMARY KEY, msg_time TIMESTAMP,"
-                + " channel VARCHAR(32), from_nick VARCHAR(32), message VARCHAR);");
-
-        statement.addBatch("CREATE INDEX IF NOT EXISTS idxmessages ON message_log(from_nick, channel)");
-
-        statement.executeBatch();
+    public PreparedStatement prepareQuery(String query) {
+        try {
+            return db.prepareStatement(query);
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
-    public PreparedStatement prepareQuery(String query) throws SQLException {
-        return this.db.prepareStatement(query);
+    private List<IRCLogEvent> queryMessages(PreparedStatement stmt, int limit) {
+        try {
+            ResultSet rows = stmt.executeQuery();
+            ResultSetMetaData metadata = rows.getMetaData();
+            Set<String> columns = new HashSet<String>();
+            List<IRCLogEvent> messages = new ArrayList<IRCLogEvent>();
+
+            for (int i = 0; i < metadata.getColumnCount(); i++) {
+                columns.add(metadata.getColumnName(i + 1));
+            }
+
+            while (rows.next() && (limit < 0 || messages.size() < limit)) {
+                IRCLogEvent event = new IRCLogEvent(IRCLogEvent.MESSAGE_EVENT);
+
+                if (columns.contains("msg_time")) {
+                    event.setDate(rows.getTimestamp("msg_time"));
+                }
+
+                if (columns.contains("channel")) {
+                    event.setChannel(rows.getString("channel"));
+                }
+
+                if (columns.contains("nick")) {
+                    event.setNick(rows.getString("nick"));
+                }
+
+                if (columns.contains("message")) {
+                    event.setData(rows.getString("message"));
+                }
+
+                messages.add(event);
+            }
+
+            return messages;
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
-    private void openSession(Timestamp timestamp) throws SQLException {
+    public List<IRCLogEvent> queryMessages(PreparedStatement stmt) {
+        return queryMessages(stmt, -1);
+    }
+
+    public IRCLogEvent queryMessage(PreparedStatement stmt) {
+        List<IRCLogEvent> messages = queryMessages(stmt, 1);
+
+        if (messages.isEmpty()) {
+            return null;
+        } else {
+            return messages.get(0);
+        }
+    }
+
+    public int countMessages(PreparedStatement stmt) {
+        try {
+            ResultSet rows = stmt.executeQuery();
+
+            if (rows.next()) {
+                return rows.getInt(1);
+            }
+
+            return 0;
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private List<IRCLogEvent> queryEvents(PreparedStatement stmt, int limit) {
+        try {
+            ResultSet rows = stmt.executeQuery();
+            ResultSetMetaData metadata = rows.getMetaData();
+            Set<String> columns = new HashSet<String>();
+            List<IRCLogEvent> events = new ArrayList<IRCLogEvent>();
+
+            for (int i = 0; i < metadata.getColumnCount(); i++) {
+                columns.add(metadata.getColumnName(i + 1));
+            }
+
+            if (!columns.contains("type")) {
+                throw new IllegalArgumentException("Event query must include `type` column");
+            }
+
+            while (rows.next() && (limit < 0 || events.size() < limit)) {
+                String type = rows.getString("type");
+                IRCLogEvent event;
+
+                if (type.equals("join")) {
+                    event = new IRCLogEvent(IRCLogEvent.JOIN_EVENT);
+                } else if (type.equals("part")) {
+                    event = new IRCLogEvent(IRCLogEvent.PART_EVENT);
+                } else if (type.equals("quit")) {
+                    event = new IRCLogEvent(IRCLogEvent.QUIT_EVENT);
+                } else {
+                    log.error("Invalid event type '{}'", type);
+                    continue;
+                }
+
+                if (columns.contains("event_time")) {
+                    event.setDate(rows.getTimestamp("event_time"));
+                }
+
+                if (columns.contains("extra")) {
+                    event.setChannel(rows.getString("extra"));
+                }
+
+                if (columns.contains("nick")) {
+                    event.setNick(rows.getString("nick"));
+                }
+
+                events.add(event);
+            }
+
+            return events;
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public List<IRCLogEvent> queryEvents(PreparedStatement stmt) {
+        return queryEvents(stmt, -1);
+    }
+
+    public IRCLogEvent queryEvent(PreparedStatement stmt) {
+        List<IRCLogEvent> events = queryEvents(stmt, 1);
+
+        if (events.isEmpty()) {
+            return null;
+        } else {
+            return events.get(0);
+        }
+    }
+
+    public int countEvent(PreparedStatement stmt) {
+        try {
+            ResultSet rows = stmt.executeQuery();
+
+            if (rows.next()) {
+                return rows.getInt(1);
+            }
+
+            return 0;
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public void openSession(Timestamp timestamp) throws SQLException {
         PreparedStatement statement = this.db
-                .prepareStatement("INSERT INTO sessions (start_time, active) VALUES (?, TRUE)");
+            .prepareStatement("INSERT INTO sessions (start_time, active) VALUES (?, TRUE)");
         statement.setTimestamp(1, timestamp);
         statement.execute();
     }
 
-    private void openSession() throws SQLException {
+    public void openSession() throws SQLException {
         this.openSession(this.getCurrentTimestamp());
     }
 
     private void closeSession(Timestamp timestamp) throws SQLException {
         PreparedStatement statement = this.db
-                .prepareStatement("UPDATE sessions SET active=FALSE, end_time=? WHERE active=TRUE");
+            .prepareStatement("UPDATE sessions SET active=FALSE, end_time=? WHERE active=TRUE");
         statement.setTimestamp(1, timestamp);
     }
 
@@ -87,106 +236,48 @@ public class IRCLogger implements ChannelListener {
         }
     }
 
-    public void addFromIrssiLog(String channel, FileReader log) throws IOException, ParseException, SQLException {
-        BufferedReader reader = new BufferedReader(log);
-        SimpleDateFormat dayChangedFormat = new SimpleDateFormat("'--- Day changed' EEE MMM dd yyyy");
-        SimpleDateFormat logOpenedFormat = new SimpleDateFormat("'--- Log opened' EEE MMM dd HH:mm:ss yyyy");
-        SimpleDateFormat logClosedFormat = new SimpleDateFormat("'--- Log closed' EEE MMM dd HH:mm:ss yyyy");
-        Calendar timestamp = Calendar.getInstance();
-
-        String line = reader.readLine();
-        while (line != null) {
-            if (line.startsWith("--- Day changed")) {
-                timestamp.setTime(dayChangedFormat.parse(line));
-
-            } else if (line.startsWith("--- Log opened")) {
-                timestamp.setTime(logOpenedFormat.parse(line));
-                this.openSession(new Timestamp(timestamp.getTimeInMillis()));
-
-            } else if (line.startsWith("--- Log closed")) {
-                timestamp.setTime(logClosedFormat.parse(line));
-                this.closeSession(new Timestamp(timestamp.getTimeInMillis()));
-
-            } else if (line.matches("^\\d\\d:\\d\\d .*")) {
-                int hour = Integer.valueOf(line.substring(0, 2));
-                int minute = Integer.valueOf(line.substring(3, 5));
-                String rest = line.substring(6).trim();
-                String nick = "";
-                String message = "";
-
-                timestamp.set(Calendar.HOUR_OF_DAY, hour);
-                timestamp.set(Calendar.MINUTE, minute);
-
-                Timestamp ts = new Timestamp(timestamp.getTimeInMillis());
-                if (rest.startsWith("* ")) {
-                    String[] parts = rest.split("\\s", 3);
-                    nick = parts[1];
-
-                    message = "\001ACTION ";
-                    if (parts.length == 3) {
-                        message += parts[2];
-                    }
-                    this.logMessage(ts, channel, nick, message);
-
-                } else if (rest.startsWith("<")) {
-                    int endOfNick = rest.indexOf('>');
-                    nick = rest.substring(2, endOfNick);
-                    message = rest.substring(endOfNick + 1).trim();
-                    this.logMessage(ts, channel, nick, message);
-
-                } else if (rest.startsWith("-!-")) {
-                    rest = rest.substring(4);
-                    nick = rest.split("\\s", 2)[0];
-
-                    if (rest.contains("has quit")) {
-                        this.logQuit(ts, channel, nick);
-                    } else if (rest.contains("has joined")) {
-                        this.logJoin(ts, channel, nick);
-                    } else if (rest.contains("has left")) {
-                        this.logPart(ts, channel, nick);
-                    }
-                }
-            } else {
-                IRCLogger.log.warn("Unknown line: {}", line);
-            }
-            line = reader.readLine();
+    void logJoin(Timestamp timestamp, String channel, String nick) throws SQLException {
+        synchronized (eventStatement) {
+            this.eventStatement.setTimestamp(1, timestamp);
+            this.eventStatement.setString(2, "join");
+            this.eventStatement.setString(3, nick);
+            this.eventStatement.setString(4, channel);
+            this.eventStatement.executeUpdate();
+            this.eventStatement.clearParameters();
         }
     }
 
-    private void logJoin(Timestamp timestamp, String channel, String nick) throws SQLException {
-        this.eventStatement.setTimestamp(1, timestamp);
-        this.eventStatement.setString(2, "join");
-        this.eventStatement.setString(3, nick);
-        this.eventStatement.setString(4, channel);
-        this.eventStatement.executeUpdate();
-        this.eventStatement.clearParameters();
+    void logPart(Timestamp timestamp, String channel, String nick) throws SQLException {
+        synchronized (eventStatement) {
+            this.eventStatement.setTimestamp(1, timestamp);
+            this.eventStatement.setString(2, "part");
+            this.eventStatement.setString(3, nick);
+            this.eventStatement.setString(4, channel);
+            this.eventStatement.executeUpdate();
+            this.eventStatement.clearParameters();
+        }
     }
 
-    private void logPart(Timestamp timestamp, String channel, String nick) throws SQLException {
-        this.eventStatement.setTimestamp(1, timestamp);
-        this.eventStatement.setString(2, "part");
-        this.eventStatement.setString(3, nick);
-        this.eventStatement.setString(4, channel);
-        this.eventStatement.executeUpdate();
-        this.eventStatement.clearParameters();
+    void logQuit(Timestamp timestamp, String channel, String nick) throws SQLException {
+        synchronized (eventStatement) {
+            this.eventStatement.setTimestamp(1, timestamp);
+            this.eventStatement.setString(2, "quit");
+            this.eventStatement.setString(3, nick);
+            this.eventStatement.setString(4, channel);
+            this.eventStatement.executeUpdate();
+            this.eventStatement.clearParameters();
+        }
     }
 
-    private void logQuit(Timestamp timestamp, String channel, String nick) throws SQLException {
-        this.eventStatement.setTimestamp(1, timestamp);
-        this.eventStatement.setString(2, "quit");
-        this.eventStatement.setString(3, nick);
-        this.eventStatement.setString(4, channel);
-        this.eventStatement.executeUpdate();
-        this.eventStatement.clearParameters();
-    }
-
-    private void logMessage(Timestamp timestamp, String channel, String from, String message) throws SQLException {
-        this.messageStatement.setTimestamp(1, timestamp);
-        this.messageStatement.setString(2, channel);
-        this.messageStatement.setString(3, from);
-        this.messageStatement.setString(4, message);
-        this.messageStatement.executeUpdate();
-        this.messageStatement.clearParameters();
+    void logMessage(Timestamp timestamp, String channel, String from, String message) throws SQLException {
+        synchronized (messageStatement) {
+            this.messageStatement.setTimestamp(1, timestamp);
+            this.messageStatement.setString(2, channel);
+            this.messageStatement.setString(3, from);
+            this.messageStatement.setString(4, message);
+            this.messageStatement.executeUpdate();
+            this.messageStatement.clearParameters();
+        }
     }
 
     private Timestamp getCurrentTimestamp() {

@@ -1,7 +1,33 @@
+/*
+ * Copyright (c) 2013 Christopher Thunes
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 package com.brewtab.ircbot;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
@@ -18,6 +44,7 @@ import com.brewtab.ircbot.applets.GoogleSuggestsApplet;
 import com.brewtab.ircbot.applets.GroupHugApplet;
 import com.brewtab.ircbot.applets.SpellApplet;
 import com.brewtab.ircbot.applets.StatsApplet;
+import com.brewtab.ircbot.applets.StockApplet;
 import com.brewtab.ircbot.applets.TextsFromLastNightApplet;
 import com.brewtab.ircbot.applets.TumblrApplet;
 import com.brewtab.ircbot.applets.UrbanDictionaryApplet;
@@ -26,12 +53,14 @@ import com.brewtab.ircbot.applets.WolframAlphaApplet;
 import com.brewtab.ircbot.applets.WundergroundApplet;
 import com.brewtab.ircbot.util.SQLProperties;
 import com.brewtab.irclog.IRCLogger;
+import com.sampullara.cli.Args;
+import com.sampullara.cli.Argument;
 
 public class Bot implements ConnectionStateListener {
     private static final Logger log = LoggerFactory.getLogger(Bot.class);
 
-    private static String WOLFRAM_ALPHA_KEY = "XXXX";
-    private static String WUNDERGROUND_KEY = "XXXX";
+    @Argument(value = "config", description = "Configuration properties file")
+    private static String configFile;
 
     private String connectSpec;
 
@@ -45,33 +74,105 @@ public class Bot implements ConnectionStateListener {
     private AppletListener appletsListener;
     private PlusPlus plusPlus;
 
+    private String channelName;
+
+    private String wundergroundApiKey;
+    private String wolframAlphaApiKey;
+
+    private String database;
+    private String databaseHost;
+    private String databaseUser;
+    private String databasePassword;
+
     private CountDownLatch disconnected;
 
     public Bot(String connectSpec) {
         this.connectSpec = connectSpec;
     }
 
+    public String getChannelName() {
+        return channelName;
+    }
+
+    public void setChannelName(String channelName) {
+        this.channelName = channelName;
+    }
+
+    public String getWundergroundApiKey() {
+        return wundergroundApiKey;
+    }
+
+    public void setWundergroundApiKey(String wundergroundApiKey) {
+        this.wundergroundApiKey = wundergroundApiKey;
+    }
+
+    public String getWolframAlphaApiKey() {
+        return wolframAlphaApiKey;
+    }
+
+    public void setWolframAlphaApiKey(String wolframAlphaApiKey) {
+        this.wolframAlphaApiKey = wolframAlphaApiKey;
+    }
+
+    public String getDatabase() {
+        return database;
+    }
+
+    public void setDatabase(String database) {
+        this.database = database;
+    }
+
+    public String getDatabaseHost() {
+        return databaseHost;
+    }
+
+    public void setDatabaseHost(String databaseHost) {
+        this.databaseHost = databaseHost;
+    }
+
+    public String getDatabaseUser() {
+        return databaseUser;
+    }
+
+    public void setDatabaseUser(String databaseUser) {
+        this.databaseUser = databaseUser;
+    }
+
+    public String getDatabasePassword() {
+        return databasePassword;
+    }
+
+    public void setDatabasePassword(String databasePassword) {
+        this.databasePassword = databasePassword;
+    }
+
     private void initApplets() {
         appletsListener.registerApplet(new GroupHugApplet(), "gh", "grouphug");
         appletsListener.registerApplet(new TextsFromLastNightApplet(), "tfln", "texts");
         appletsListener.registerApplet(new CalcApplet(), "m", "math", "calc");
-        appletsListener.registerApplet(new WundergroundApplet(properties, WUNDERGROUND_KEY), "w", "weather");
-        appletsListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired");
+        appletsListener.registerApplet(new WundergroundApplet(properties, wundergroundApiKey), "w", "weather");
+        appletsListener.registerApplet(new StatsApplet(logger), "last", "bored", "tired", "search");
         appletsListener.registerApplet(new BashApplet(), "bash");
         appletsListener.registerApplet(new WikiApplet(), "wiki");
         appletsListener.registerApplet(new TumblrApplet(), "tumblr");
-        appletsListener.registerApplet(new WolframAlphaApplet(WOLFRAM_ALPHA_KEY), "a", "alpha");
+        appletsListener.registerApplet(new WolframAlphaApplet(wolframAlphaApiKey), "a", "alpha");
         appletsListener.registerApplet(new SpellApplet(), "sp", "spell");
         appletsListener.registerApplet(new EightBallApplet(), "8ball");
         appletsListener.registerApplet(new UrbanDictionaryApplet(), "urban");
         appletsListener.registerApplet(new GoogleSuggestsApplet(), "gs");
+        appletsListener.registerApplet(new StockApplet(), "stock");
+    }
+
+    private Connection createConnection() throws Exception {
+        Class.forName("org.postgresql.Driver");
+        return DriverManager.getConnection("jdbc:postgresql://" + databaseHost + "/" + database, databaseUser,
+            databasePassword);
     }
 
     public void start() throws Exception {
         client = ClientFactory.newInstance().connect(connectSpec);
 
-        Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:brewtab", "sa", "");
+        connection = createConnection();
         logger = new IRCLogger(connection);
         properties = new SQLProperties(connection);
 
@@ -79,7 +180,7 @@ public class Bot implements ConnectionStateListener {
         appletsListener = new AppletListener();
         initApplets();
 
-        channel = client.join("#bot");
+        channel = client.join(channelName);
         channel.addListener(appletsListener);
         channel.addListener(plusPlus);
         channel.addListener(logger);
@@ -107,7 +208,45 @@ public class Bot implements ConnectionStateListener {
     }
 
     public static void main(String[] args) throws Exception {
-        Bot bot = new Bot("irc://testbot@irc.brewtab.com/");
+        try {
+            Args.parse(Bot.class, args);
+        } catch (IllegalArgumentException e) {
+            Args.usage(Bot.class);
+            return;
+        }
+
+        Properties config = new Properties();
+        InputStream configInputStream;
+
+        if (configFile == null) {
+            configInputStream = Bot.class.getResourceAsStream("bot.properties");
+
+            if (configInputStream == null) {
+                log.error("Could not find configuration in classpath");
+                return;
+            }
+
+            config.load(configInputStream);
+        } else {
+            try {
+                configInputStream = new FileInputStream(configFile);
+            } catch (FileNotFoundException e) {
+                log.error("Could not open configuration file");
+                return;
+            }
+
+            config.load(configInputStream);
+        }
+
+        Bot bot = new Bot(config.getProperty("connectUrl"));
+
+        bot.setChannelName(config.getProperty("channel"));
+        bot.setWolframAlphaApiKey(config.getProperty("applets.wolframAlpha.apiKey"));
+        bot.setWundergroundApiKey(config.getProperty("applets.wunderground.apiKey"));
+        bot.setDatabase(config.getProperty("database.db"));
+        bot.setDatabaseHost(config.getProperty("database.host"));
+        bot.setDatabaseUser(config.getProperty("database.user"));
+        bot.setDatabasePassword(config.getProperty("database.password"));
 
         try {
             bot.start();

@@ -6,14 +6,13 @@
   <parent>
     <groupId>com.brewtab</groupId>
     <artifactId>brewtab-irc-parent</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>brewtab-ircbot</artifactId>
   <packaging>jar</packaging>
 
-  <name>brewtab-ircbot</name>
-  <url>http://www.github.com/c2nes/ircbot</url>
+  <name>Brewtab IRC Bot</name>
 
   <build>
     <plugins>
@@ -53,7 +52,7 @@
     <dependency>
       <groupId>com.brewtab</groupId>
       <artifactId>brewtab-irc</artifactId>
-      <version>1.0-SNAPSHOT</version>
+      <version>0.9.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -82,8 +81,8 @@
     </dependency>
 
     <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
+      <groupId>postgresql</groupId>
+      <artifactId>postgresql</artifactId>
     </dependency>
 
     <dependency>
@@ -94,6 +93,16 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.spullara.cli-parser</groupId>
+      <artifactId>cli-parser</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
     </dependency>
 
     <dependency>
