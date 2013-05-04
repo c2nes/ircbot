@@ -13,38 +13,35 @@
   <packaging>jar</packaging>
 
   <name>Brewtab IRC Bot</name>
+  <description>Java IRC bot</description>
 
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-
-        <configuration>
-          <descriptorRefs>
-            <descriptorRef>jar-with-dependencies</descriptorRef>
-          </descriptorRefs>
-
-          <archive>
-            <manifest>
-              <mainClass>com.brewtab.ircbot.Bot</mainClass>
-            </manifest>
-          </archive>
-
-          <outputDirectory>../</outputDirectory>
-        </configuration>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.0</version>
 
         <executions>
           <execution>
-            <id>make-assembly</id>
+            <id>brewtab-ircbot-dist</id>
             <phase>package</phase>
             <goals>
-              <goal>single</goal>
+              <goal>shade</goal>
             </goals>
+
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>dist</shadedClassifierName>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.brewtab.ircbot.Bot</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
           </execution>
         </executions>
       </plugin>
-
     </plugins>
   </build>
 
@@ -52,7 +49,7 @@
     <dependency>
       <groupId>com.brewtab</groupId>
       <artifactId>brewtab-irc</artifactId>
-      <version>0.9.0-SNAPSHOT</version>
+      <version>${project.parent.version}</version>
     </dependency>
 
     <dependency>
