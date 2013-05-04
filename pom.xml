@@ -117,6 +117,7 @@
         <version>2.4.1</version>
         <configuration>
           <autoVersionSubmodules>true</autoVersionSubmodules>
+          <pushChanges>false</pushChanges>
         </configuration>
       </plugin>
     </plugins>
