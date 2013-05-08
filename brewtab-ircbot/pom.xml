@@ -5,7 +5,7 @@
   <parent>
     <groupId>com.brewtab</groupId>
     <artifactId>brewtab-irc-parent</artifactId>
-    <version>0.9.0</version>
+    <version>0.9.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>brewtab-ircbot</artifactId>
